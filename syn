@@ -1,0 +1,786 @@
+#!/bin/bash
+
+# SYN
+#
+# Easily synchronise website content (database and asset files) between environments
+#
+# @version    0.2
+# @author     Rick Hambrook <rick@rickhambrook.com>
+# @copyright  Copyright (c) 2016, Rick Hambrook
+# @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
+
+
+# TODO
+# [X] Update plugin docs with new naming scheme, and flag/var support
+# [ ] Use centralised config file for paths and setting, docker/docker-machine (location optionally configurable via env var)
+# [ ] Add boot2docker support
+# [ ] Add pre-flight validation checks for each plugin
+# [ ] Add core validation functions for use by plugins
+# [ ]   - ssh connection works (maybe, might cause too many connections)
+# [ ]   - docker container exists
+# [ ]   - docker container on ssh host is accessible and exists
+# [ ] Add timing report
+# [ ] Add colours to output
+# [ ] Check all quotes and escape sequences
+# [ ] See if there is an easier to way merge defaults with supplied values
+# [ ] RSYNC: Find a better way to define file paths
+# [ ] Maybe load a single location as global config, maybe ~/.syn/config
+# [ ] Add shorthand parameters?
+# [ ] Enable notify-send?
+# [ ] Enable dumping of sample config from each plugin?
+# [ ] Clean up logic around mysql only/skip/stru
+# [ ] RSYNC: Add excludes list
+# [X] Enable specifying a file to load (--file)
+# [ ]   - Search in specified location for RSYNC (eg store all syn RSYNC in one location, specified by an env var)
+# [ ] Add more error checking
+# [X]   - Check that both environments exist
+# [X]   - Require two environments
+# [X]   - Check a plugin exists before attempting to use it
+# [X]   - Only sync file locations with matching keys
+# [X] RSYNC: add manual and auto root
+# [X] Rename builtin plugins to "mysql" and "rsync" instead of "db" and "files"
+# [X] Add optional docker layer
+# [X] Move flags, vars, and commands to being dynamic with dynamic help so that plugins can add them
+# [X] Add default path for use with the --file parameter
+# [X] Automatically list actions to be taken for each sync
+# [X] Enable listing of environments (--envs)?
+# [X] Enable listing of plugins (--plugins)?
+# [X] Load from multiple RSYNC, eg in repo, locally and globally
+# [X] Support loading extra action plugins from an environmental path
+# [X] Help system
+# [X]   - Dynamically list action plugins
+# [X]   - Dynamically list action plugin help
+# [X] MySQL: Allow skipping of tables
+# [X] MySQL: Allow structure-only table copies
+# [X] MySQL: Allow toggling of using SSH for MySQL connections
+# [X] Prompt/warn before pushing to prod/live or if _allow is set to "warn"
+# [X] Disallow if _allow is set to false
+
+_SYN_VERSION=0.2
+_SYN_AUTHOR="Rick Hambrook"
+_SYN_WEBSITE="http://www.rickhambrook.com"
+
+# Initial settings
+declare cmd="sync"
+declare src
+declare dst
+declare config_cnt
+declare plugin_cnt
+declare local_root=""
+declare -A actions
+declare -A commands
+declare -A environments
+declare -A plugins
+
+# Flags
+declare -A flags=(
+	[dryrun]=false
+)
+declare -A flags_help=(
+	[dryrun]="Show the commands that will be used, but don't run them"
+)
+
+# Vars
+declare -A vars=(
+	[file]=""
+	[only]=""
+)
+declare -A vars_help=(
+	[file]="Specify a config file to load (after other attempts)"
+	[only]="Select only the actions you want to take, comma separated"
+)
+
+# Defaults
+declare -A config=(
+	# mysql plugin defaults
+	[_mysql_path]="mysql"
+	[_mysql_dump]="mysqldump"
+	[_mysql_host]="127.0.0.1"
+	[_mysql_user]="root"
+	[_mysql_pass]="root"
+	[_mysql_port]=3306
+	[_mysql_skip]=""
+	[_mysql_flags]="--add-drop-database --compress --hex-blob --opt --quote-names -v"
+	[_mysql_docker]=""
+	[_mysql_ssh]=""
+	# rsync plugin defaults
+	[_rsync_flags]="-aclruv" #archive, checksum, symlinks as symlinks, recursive, skip newer files, verbose
+	[_rsync_docker]=""
+	[_rsync_ssh]=""
+	[_rsync_dirs]=""
+)
+
+
+################################################################################
+# MISC HELPERS
+################################################################################
+
+# Exit with an error and a non-successful exit code
+function syn_error() {
+	echo "Error: ${1:-"An unknown error has occured"}" 1>&2
+	exit 1
+}
+
+# Show a prompt for confirmation
+function syn_confirm() {
+	read -p "$@ [y/n]: " response
+	if [[ $response =~ ^[Yy].* ]]; then
+		return 1
+	fi
+	return 0
+}
+
+# In Array
+function in_array() {
+	local haystack=${1}[@]
+	local needle=${2}
+	for i in ${!haystack}; do
+		if [[ ${i} == ${needle} ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Check if an array key exists
+function array_key_exists() {
+	eval '[ ${'$2'[$1]+muahaha} ]'
+}
+
+
+################################################################################
+# COMMAND WRAPPING
+################################################################################
+
+# Wrap SSH commands
+function syn_ssh_wrap() {
+	# $1 = SSH string
+	# $2 = command
+	echo "ssh $1 $2"
+}
+
+# Wrap Docker commands
+function syn_docker_wrap() {
+	# $1 = docker container
+	# $2 = command
+	# $3 = additional flags
+	echo "docker exec $3 $1 $2"
+}
+
+
+################################################################################
+# BUILTIN PLUGINS
+################################################################################
+
+# Plugin: MySQL
+function syn_plugin_mysql() {
+	# Require two db names
+	if [ ! "${config[$src,mysql,name]}" ] || [ ! "${config[$dst,mysql,name]}" ]; then
+		syn_error "There must be DB names for both evironments"
+	fi
+
+	# Defaults
+	: ${config[$src,mysql,dump]:=${config[_mysql_dump]}}
+	: ${config[$src,mysql,host]:=${config[_mysql_host]}}
+	: ${config[$src,mysql,user]:=${config[_mysql_user]}}
+	: ${config[$src,mysql,pass]:=${config[_mysql_pass]}}
+	: ${config[$src,mysql,port]:=${config[_mysql_port]}}
+	: ${config[$src,mysql,_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$src,mysql,_docker]:=${config[_mysql_docker]}}
+	: ${config[$src,mysql,only]:=${config[_mysql_only]}}
+	: ${config[$src,mysql,skip]:=${config[_mysql_skip]}}
+	: ${config[$src,mysql,stru]:=${config[_mysql_stru]}}
+	: ${config[$src,mysql,flags]:=${config[_mysql_flags]}}
+
+	: ${config[$dst,mysql,path]:=${config[_mysql_path]}}
+	: ${config[$dst,mysql,host]:=${config[_mysql_host]}}
+	: ${config[$dst,mysql,user]:=${config[_mysql_user]}}
+	: ${config[$dst,mysql,pass]:=${config[_mysql_pass]}}
+	: ${config[$dst,mysql,port]:=${config[_mysql_port]}}
+	: ${config[$dst,mysql,_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$dst,mysql,_docker]:=${config[_mysql_docker]}}
+
+	local db_actions="initial"
+	if [ "${config[$src,mysql,stru]}" ]; then
+		db_actions="$db_actions structure"
+	fi
+
+	for action in $db_actions; do
+
+		# Build out the skipped tables
+		local skip=""
+		local tables=""
+		if [ $action == "initial" ]; then
+			for table in ${config[$src,mysql,only]}; do
+				skip+=" $table"
+			done
+			for table in ${config[$src,mysql,skip]} ${config[$src,mysql,stru]}; do
+				skip+=" --ignore-table=${config[$src,mysql,name]}.$table"
+			done
+		else
+			tables="-d"
+			for table in ${config[$src,mysql,stru]}; do
+				tables+=" $table"
+			done
+		fi
+
+		# Build the src command
+		local cmdSrc="${config[$src,mysql,dump]} \
+			${config[$src,mysql,name]} \
+			${config[$src,mysql,flags]} \
+			$skip \
+			$tables \
+			-h${config[$src,mysql,host]} \
+			-u${config[$src,mysql,user]} \
+			-p${config[$src,mysql,pass]} \
+			-P${config[$src,mysql,port]} \
+		"
+
+		# Should src be sent to a docker container?
+		if [ "${config[$src,mysql,_docker]}" ]; then
+			cmdSrc=$(syn_docker_wrap "${config[$src,mysql,_docker]}" "$cmdSrc")
+		fi
+
+		# Should src be over SSH?
+		if [ "${config[$src,mysql,_ssh]}" ]; then
+			cmdSrc=$(syn_ssh_wrap "${config[$src,mysql,_ssh]}" "$cmdSrc")
+		fi
+
+		# Build the dst command
+		local cmdDst="${config[$dst,mysql,path]} \
+			-D${config[$dst,mysql,name]} \
+			-h${config[$dst,mysql,host]} \
+			-u${config[$dst,mysql,user]} \
+			-p${config[$dst,mysql,pass]} \
+			-P${config[$dst,mysql,port]} \
+		"
+
+		# Should dst be sent to a docker container?
+		if [ "${config[$dst,mysql,_docker]}" ]; then
+			cmdDst=$(syn_docker_wrap "${config[$dst,mysql,_docker]}" "$cmdDst" "-i")
+		fi
+
+		# Should dst be over SSH?
+		if [ "${config[$dst,mysql,_ssh]}" ]; then
+			cmdDst=$(syn_ssh_wrap "${config[$dst,mysql,_ssh]}" "$cmdDst")
+		fi
+
+		# Finish up
+		if ${flags[dryrun]}; then
+			echo -e "$cmdSrc | $cmdDst"
+		else
+			$cmdSrc | $cmdDst
+		fi
+
+	done
+}
+# Help: MySQL
+function syn_plugin_mysql_help() {
+	echo "Copy a database from one location to another
+
+--------------------------------------------------------------------------------
+
+CONFIG
+
+name:      The database name
+[path]:    Path to mysql executable (default mysql)
+[dump]:    Path to mysqldump executable (default mysqldump)
+[host]:    The database host (default 127.0.0.1)
+[user]:    The database user (default root)
+[pass]:    The database pass (default root)
+[port]:    The database port (default 3306)
+[only]:    Tables to copy (and only these tables) (new-line string)
+[skip]:    Tables to skip (new-line string)
+[stru]:    Tables to only copy the structure for, not data (new-line string)
+[flags]:   Optional mysql flags to use when dumping
+[_ssh]:    SSH connection string
+[_docker]: Docker container name
+
+--------------------------------------------------------------------------------
+
+CONFIG EXAMPLE
+
+config[live,mysql,name]=myproddb
+config[live,mysql,user]=myuser
+config[live,mysql,pass]=mypass
+config[live,mysql,skip]=\"
+    oldtable
+    someothertable
+\"
+config[live,mysql,stru]=\"
+    cache
+    eventlog
+\"
+"
+}
+
+# Plugin: RSYNC
+function syn_plugin_rsync() {
+	local -A src_paths
+	local -A dst_paths
+
+	# Loop the environments and normalise the paths into two arrays
+
+	# Source
+	local cnt=0
+	for file in ${config[$src,rsync,dirs]}; do
+		((cnt++))
+		local pathinfo=(${file//=/ })
+		if [ "${pathinfo[1]}" ]; then
+			src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+		else
+			src_paths["$cnt"]="${pathinfo[0]}"
+		fi
+	done
+	local src_ssh=""
+	if [ "${config[$src,rsync,_ssh]}" ]; then
+		src_ssh="${config[$src,rsync,_ssh]}:"
+	fi
+
+	# Destination
+	cnt=0
+	for file in ${config[$dst,rsync,dirs]}; do
+		((cnt++))
+		local pathinfo=(${file//=/ })
+		if [ "${pathinfo[1]}" ]; then
+			dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+		else
+			dst_paths["$cnt"]="${pathinfo[0]}"
+		fi
+	done
+	local dst_ssh=""
+	if [ "${config[$dst,rsync,_ssh]}" ]; then
+		dst_ssh="${config[$dst,rsync,_ssh]}:"
+		src_ssh="" # Can't use two remotes
+	fi
+
+	# Loop it and create the commands
+
+	for i in "${!src_paths[@]}"; do
+		if [ "${dst_paths[$i]}" ]; then
+			local pattern="^(~|/|./|../)"
+			local src_path="$(echo -e "${src_paths[$i]}" | sed -e 's/\*$//')"
+			if [[ ( ( "${config[$src,rsync,root]}" ) || ( $local_root && ! "${config[$src,rsync,_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
+				if [ "${config[$src,rsync,root]}" ]; then
+					src_path="${config[$src,rsync,root]}/$src_path"
+				else
+					src_path="$local_root/$src_path"
+				fi
+			fi
+			local dst_path="$(echo -e "${dst_paths[$i]}" | sed -e 's/\*$//')"
+			if [[ ( ( "${config[$dst,rsync,root]}" ) || ( $local_root && ! "${config[$dst,rsync,_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
+				if [ "${config[$dst,rsync,root]}" ]; then
+					dst_path="${config[$dst,rsync,root]}/$dst_path"
+				else
+					dst_path="$local_root/$dst_path"
+				fi
+			fi
+			local cmd="rsync \
+				${config[_rsync_flags]} \
+				$src_ssh$src_path/
+				$dst_ssh$dst_path
+			"
+
+			# Should src be over SSH?
+			if [ "${config[$src,rsync,_ssh]}" ] && [ "${config[$dst,rsync,_ssh]}" ]; then
+				cmd=$(syn_ssh_wrap "${config[$src,rsync,_ssh]}" "$cmd")
+			fi
+			if ${flags[dryrun]}; then
+				echo $cmd
+			else
+				$cmd
+			fi
+		fi
+	done
+}
+# Help: RSYNC
+function syn_plugin_rsync_help() {
+	echo "Syncronise files from one location to another using rsync
+
+Uses a new-line separated list, with key/values separated by '='. Note no trailing slash.
+
+Relative paths will be prepended by the local root from either \$config[env,rsync,root]
+or the deepest location of a .syn from the current directory up to the root.
+
+--------------------------------------------------------------------------------
+
+CONFIG
+
+[root]: Path to project root (optional base for relative paths)
+dirs: Directories to sync (new-line string)
+
+--------------------------------------------------------------------------------
+
+CONFIG EXAMPLE
+
+config[live,rsync,root]=/path/to/project/root
+config[live,rsync,dirs]=\"
+    uploads=~/path/to/dir
+    configs=/root/based/path
+\"
+"
+}
+
+
+################################################################################
+# INTEGRATED HELP
+################################################################################
+
+function syn_render_help_commands() {
+	echo "Commands:"
+	for c in ${!commands[@]}; do
+		echo -e "                    $(${commands[$c]})\r  --$c"
+	done
+}
+
+function syn_render_help_flags() {
+	echo "Flags:"
+	for f in ${!flags_help[@]}; do
+		echo -e "                    ${flags_help[$f]}\r  --$f"
+	done
+}
+
+function syn_render_help_vars() {
+	echo "Vars:"
+	for v in ${!vars_help[@]}; do
+		echo -e "                    ${vars_help[$v]}\r  --$v"
+	done
+}
+
+# Help. Will show specific help from a plugin, or general help with
+# lists of environments and plugins
+function syn_cmd_help() {
+	if [ $1 ]; then
+		if [[ $(set | grep "syn_plugin_${1}_help ()") ]]; then
+			echo -e "Showing help for plugin: $1\n";
+			syn_plugin_${1}_help
+			exit
+		else
+			syn_error "Plugin '$1' not found"
+		fi
+	fi
+
+	echo -e "syn v$_SYN_VERSION
+
+Copyright (C) 2016 $_SYN_AUTHOR
+$_SYN_WEBSITE
+
+A pluggable system to syncronise between environments with builtin plugins
+for mysql and rsync.
+
+Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]
+
+Parameters:
+  SRC               Must match an environment from the loaded config files
+  DST               Must match an environment from the loaded config files
+
+$(syn_render_help_commands)
+
+$(syn_render_help_flags)
+
+$(syn_render_help_vars)
+
+$(syn_cmd_envs)
+
+$(syn_cmd_plugins)
+
+You can load your own plugins by creating \"<pluginname>.synPlugin\" files
+in a directory, then exporting that directory path as \"SYN_PLUGIN_PATH\"
+in your shell... eg:
+
+  export SYN_PLUGIN_PATH=\"~/MySynPlugins\"
+"
+# | less
+
+	exit
+}
+function syn_cmd_help_help() {
+	echo "Show this help (or append a plugin name for specific help)"
+}
+
+# Show actions
+function syn_cmd_actions() {
+	local actions=""
+	for a in ${vars[only]}; do
+		actions+="\n  $a"
+	done
+	echo -e "Proposed actions for this sync:${actions}"
+}
+function syn_cmd_actions_help() {
+	echo "Show the actions that are configured for a src, dst, or both"
+}
+
+# Show environments
+function syn_cmd_envs() {
+	# $1 = [true/false] show 'readonly' status
+	local envs=""
+	for e in ${environments[@]}; do
+		envs=$(echo "$envs\n  $e")
+		if [ ! "$1" == true ] && [ "${config[$e,_allow]}" == false ]; then
+			envs+=" [read only]"
+		fi
+	done
+	echo -e "Loaded Environments:${envs}"
+}
+function syn_cmd_envs_help() {
+	echo "List available environments"
+}
+
+# Show plugins
+function syn_cmd_plugins() {
+	local plgs=""
+	for p in $plugins; do
+		plgs+="\n  $p"
+	done
+	echo -e "Loaded Plugins:${plgs}"
+}
+function syn_cmd_plugins_help() {
+	echo "List all available plugins"
+}
+
+
+################################################################################
+# CONFIGURATION FILE LOADING
+################################################################################
+
+# Config file loading
+function syn_load_configs() {
+	config_cnt=0
+	for filename in ".syn.global" ".syn" ".syn.local"; do
+		currpath="$(pwd)"
+		while [ $currpath != "/" ]; do
+			if [ -r "$currpath/$filename" ]; then
+				. "$currpath/$filename"
+				((config_cnt++))
+				if [[ $local_root = "" ]]; then
+					local_root="$currpath"
+				fi
+			fi
+			currpath="$(cd $currpath ; cd .. ; pwd)"
+		done
+	done
+}
+
+# Load specific file (from --file parameter)
+function syn_load_config_specific() {
+	if [ "${vars[file]}" ]; then
+		for f in "${vars[file]}" "${vars[file]}.syn"; do
+			if [ -f "$f" ]; then
+				. "$f"
+				((config_cnt++))
+			elif [ -f "${SYN_DEFAULT_PATH}/$f" ]; then
+				. "${SYN_DEFAULT_PATH}/$f"
+				((config_cnt++))
+			fi
+		done
+	fi
+}
+
+# Config file loading
+function syn_load_plugins() {
+	plugin_cnt=0
+	if [ "$SYN_PLUGIN_PATH" ]; then
+		for filename in $(ls ${SYN_PLUGIN_PATH}/*.synPlugin); do
+			. "$filename"
+			((pluign_cnt++))
+		done
+	fi
+}
+
+
+################################################################################
+# PARSE LOADED DATA
+################################################################################
+
+# Show requested actions
+function syn_parse_actions() {
+	if [ "${vars[only]}" == "" ]; then
+		declare -A tmp
+		pattern="^[^,]+,([^_][^,]+)"
+		for p in "${!config[@]}"; do
+			if [[ $p =~ $pattern ]]; then
+				: ${tmp[${BASH_REMATCH[1]}]:=${BASH_REMATCH[1]}}
+			fi
+		done
+		vars[only]=${tmp[@]}
+	fi
+}
+
+# Get the available plugins
+function syn_parse_commands() {
+	for c in $(compgen -A function syn_cmd_); do
+		local cmd=$(echo "${c//syn_cmd_/ }")
+		if [[ $c =~ ^syn_cmd_(.+?)_help$ ]]; then
+			commands[${BASH_REMATCH[1]}]="$c"
+		fi
+	done
+}
+
+# Get configured environment names
+function syn_parse_environments() {
+	environments=""
+	pattern="^[^_][^,]+"
+	for e in "${!config[@]}"; do
+		if [[ $e =~ $pattern ]]; then
+			: ${environments[$BASH_REMATCH]:=$BASH_REMATCH}
+		fi
+	done
+}
+
+# Parameter loading
+function syn_parse_parameters() {
+	# Tried a switch statement, this more efficient
+	for ((i=1; i<=$#; i++)); do
+		if [[ ${!i} =~ ^\-\-(.*) ]]; then
+			if array_key_exists ${BASH_REMATCH[1]} flags; then
+				flags[${BASH_REMATCH[1]}]=true
+			elif array_key_exists ${BASH_REMATCH[1]} vars; then
+				((i++))
+				vars[${BASH_REMATCH[1]}]="${!i}"
+			elif array_key_exists ${BASH_REMATCH[1]} commands; then
+				cmd=${BASH_REMATCH[1]}
+			fi
+		elif [[ ! ${!i} =~ ^- ]]; then
+			if [ ! "$src" ]; then
+				src="${!i}"
+			elif [ ! "$dst" ]; then
+				dst="${!i}"
+			else
+				syn_error "Unrecognised parameter '${!i}'"
+			fi
+		else
+			syn_error "Unrecognised parameter '${!i}'"
+		fi
+	done
+}
+
+# Get the available plugins
+function syn_parse_plugins() {
+	plugins=""
+	for p in $(compgen -A function syn_plugin_); do
+		if [[ ! $p =~ _help$ ]]; then
+			plugins=$(echo "$plugins ${p//syn_plugin_/ }")
+		fi
+	done
+}
+
+# Do we need to show the help?
+function syn_check_help_request() {
+	if [ "$#" == 0 ] || [ $cmd == "help" ]; then
+		syn_cmd_help $src || $dst
+		exit
+	fi
+}
+
+
+################################################################################
+# VALIDATION HELPERS
+################################################################################
+
+# Require two environments
+function syn_validate_allow() {
+	# Check if we're pushing to a live environment
+	local to=$dst || $src
+	if [[ $to =~ (live|prod) ]] || [ "${config[$to,_allow]}" == "warn" ]; then
+		if syn_confirm "Pushing to this environment could be dangerous, are you sure?"; then
+			echo "Aborting"
+			exit
+		fi
+		echo
+	fi
+
+	# Check if we're pushing to a disallowed environment
+	if [ "${config[$to,_allow]}" == false ]; then
+		syn_error "Pushing to this environment is not allowed"
+		exit
+	fi
+}
+
+# Require one environment
+function syn_validate_require_one_env() {
+	# Is the environment set?
+	if [ ! "$src" ]; then
+		syn_error "You must specify an environment"
+	fi
+	# Is the environment valid?
+	if [ ! "${environments[$src]}" ]; then
+		syn_error "Environment '$src' doesn't exist"
+	fi
+}
+
+# Require two environments
+function syn_validate_require_two_envs() {
+	# Are both environments set?
+	if [ ! "$src" ] || [ ! "$dst" ]; then
+		syn_error "You must specify two environments"
+	fi
+	# Is the src environment valid?
+	if [ ! "${environments[$src]}" ]; then
+		syn_error "Source environment '$src' doesn't exist"
+	fi
+	# Is the dst environment valid?
+	if [ ! "${environments[$dst]}" ]; then
+		syn_error "Destination environment '$dst' doesn't exist"
+	fi
+	if [ "$src" == "$dst" ]; then
+		syn_error "Souce and destination environments cannot be the same"
+	fi
+}
+
+
+################################################################################
+# THE ACTUAL THING
+################################################################################
+
+# Do the actual synchronising
+function syn_cmd_sync() {
+	# Check if we have any configs set
+	if [ $config_cnt == 0 ]; then
+		syn_error "No config files were found"
+	fi
+
+	syn_validate_require_two_envs
+
+	syn_validate_allow
+
+	# Show a summary
+	echo "Proceeding to sync $(echo -e "${vars[only][@]}" | sed -e 's/,/, /') from $src to $dst"
+	if ${flags[dryrun]}; then
+		echo -e "\n[DRYRUN]"
+	fi
+
+	# Check that all the actions exist
+	for x in $(echo -e "${vars[only][@]}" | sed -e 's/,/ /'); do
+		if [[ ! $(set | grep "syn_plugin_$x ()") ]]; then
+			syn_error "Plugin '$x' not found"
+		fi
+	done
+
+	# Run all the actions exist
+	for x in $(echo -e "${vars[only][@]}" | sed -e 's/,/ /'); do
+		echo -e "\nRunning plugin: $x"
+		syn_plugin_$x
+	done
+}
+
+
+function main() {
+	# Load and parse everything
+	syn_load_configs
+	syn_load_plugins
+	syn_parse_commands
+	syn_parse_plugins
+	syn_parse_parameters $@
+	syn_load_config_specific
+	syn_parse_environments
+	syn_parse_actions
+	syn_check_help_request $@
+
+	# Do the chosen command
+	syn_cmd_$cmd
+
+	# Let's get out of here
+	exit
+}
+
+main $@
