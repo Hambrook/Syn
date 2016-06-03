@@ -56,6 +56,7 @@ Create a `.syn` file in your project root
 ### Example of multiple configuration files
 
 You can either put all your environment configs in one file, you can have a few configurations set up such as...
+
  * `.syn` file (in your project root, added to your repo so everyone can use it) containing the config for your live and staging environments
  * `.syn.local` file (in your project root, ignored by Git) with settings for your local environment
  * `.syn.global` file (above your project root) with config data shared for all projects (eg root database details)
