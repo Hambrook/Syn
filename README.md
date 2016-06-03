@@ -53,17 +53,25 @@ Create a `.syn` file in your project root
         anotherotherpath
     "
 
-Or you could store `live` and `staging` environments in the `.syn` file in the Git, then your local settings in `.syn.local` which could be ignored by Git.
+### Example of multiple configuration files
 
-You could also add a `.syn.global` file to the parent folder so that all your projects can inherit the same defaults (such as local database credentials).
+You can either put all your environment configs in one file, you can have a few configurations set up such as...
+ * `.syn` file (in your project root, added to your repo so everyone can use it) containing the config for your live and staging environments
+ * `.syn.local` file (in your project root, ignored by Git) with settings for your local environment
+ * `.syn.global` file (above your project root) with config data shared for all projects (eg root database details)
 
-The configuration will be built from default settings, with each found config file layered on top.
+The configuration will be built in the following order with each file overriding and extending the last
+
+1. Default, built into the script and plugins (eg root/root for MySQL)
+2. `.syn.global`
+3. `.syn`
+4. `.syn.local`
 
 ### Escaping Special Characters
 
 Most variables can handle being surrounded in double quotes, but especially for passwords, it's best to leave the quotes off and single escape any special characters (`$;()|\`, etc), eg
 
-```config[live,db,pass]=with\$pecial\;chars ```
+```config[live,db,pass]=with\$pecial\;chars```
 
 ----
 ## Available commands
