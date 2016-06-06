@@ -94,6 +94,9 @@ _Show this help (or append a plugin name for specific help, eg "syn --help mysql
 ### --dryrun
 _Show the commands that will be used, but don't actually run them_
 
+### --intsall
+_Installs Syn to the local path so you can use it simply by typing 'syn'_
+
 ## Available vars
 
 ### --file

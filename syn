@@ -538,6 +538,21 @@ function syn_cmd_plugins_help() {
 	echo "List all available plugins"
 }
 
+function syn_cmd_install() {
+	if [ -L "${BASH_SOURCE[0]}" ]; then
+		syn_error "Syn is already installed as a SymLink."
+	fi
+	if [ -e "/usr/local/syn" ]; then
+		syn_error "Syn is already installed to your path."
+	fi
+	sudo ln -s "${BASH_SOURCE[0]}" "/usr/local/syn";
+	echo "You can now run this script simply by typing 'syn'"
+}
+
+function syn_cmd_install_help() {
+	echo "Installs Syn to your executable path for ease-of-use";
+}
+
 
 ################################################################################
 # CONFIGURATION FILE LOADING
