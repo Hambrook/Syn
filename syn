@@ -544,10 +544,10 @@ function syn_cmd_install() {
 	if [ -L "${BASH_SOURCE[0]}" ]; then
 		syn_error "Syn is already installed as a SymLink."
 	fi
-	if [ -e "/usr/local/syn" ]; then
+	if [ -e "/usr/local/bin/syn" ]; then
 		syn_error "Syn is already installed to your path."
 	fi
-	sudo ln -s "${BASH_SOURCE[0]}" "/usr/local/syn";
+	sudo ln -s "$(readlink -f $0)" "/usr/local/bin/syn";
 	echo "You can now run this script simply by typing 'syn'"
 }
 
