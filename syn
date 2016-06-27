@@ -452,6 +452,7 @@ function syn_render_help_vars() {
 # Help. Will show specific help from a plugin, or general help with
 # lists of environments and plugins
 function syn_cmd_help() {
+	syn_banner
 	if [ $1 ]; then
 		if [[ $(set | grep "syn_plugin_${1}_help ()") ]]; then
 			echo -e "Showing help for plugin: $1\n";
@@ -462,11 +463,7 @@ function syn_cmd_help() {
 		fi
 	fi
 
-	echo -e "syn v$_SYN_VERSION
-
-Copyright (C) 2016 $_SYN_AUTHOR
-$_SYN_WEBSITE
-
+	echo -e "
 A pluggable system to syncronise between environments with builtin plugins
 for mysql and rsync.
 
@@ -743,6 +740,26 @@ function syn_validate_require_two_envs() {
 		syn_error "Souce and destination environments cannot be the same"
 	fi
 }
+
+
+################################################################################
+# COSTMETICS
+################################################################################
+
+# The banner
+function syn_banner() {
+	echo -e "
+    _____
+   / ____|
+  | (___  _   _ _ __     Version: v$_SYN_VERSION
+   \___ \| | | | '_ \ 
+   ____) | |_| | | | |   Author:  $_SYN_AUTHOR
+  |_____/ \__, |_| |_|
+           __/ |         Website: $_SYN_WEBSITE
+          |___/
+"
+}
+
 
 
 ################################################################################
