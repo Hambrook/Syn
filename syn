@@ -11,6 +11,8 @@
 
 
 # TODO
+# [ ] Add rsync ssh proxy (-e "ssh -A root@proxy ssh")
+# [ ] Fix rsync flags not being applied
 # [X] Update plugin docs with new naming scheme, and flag/var support
 # [ ] Use centralised config file for paths and setting, docker/docker-machine (location optionally configurable via env var)
 # [ ] Add boot2docker support
@@ -31,7 +33,7 @@
 # [ ] Clean up logic around mysql only/skip/stru
 # [ ] RSYNC: Add excludes list
 # [X] Enable specifying a file to load (--file)
-# [ ]   - Search in specified location for RSYNC (eg store all syn RSYNC in one location, specified by an env var)
+# [X]   - Search in specified location for RSYNC (eg store all syn RSYNC in one location, specified by an env var)
 # [ ] Add more error checking
 # [X]   - Check that both environments exist
 # [X]   - Require two environments
