@@ -72,7 +72,9 @@ The configuration will be built in the following order with each file overriding
 
 Most variables can handle being surrounded in double quotes, but especially for passwords, it's best to leave the quotes off and single escape any special characters (`$;()|\`, etc), eg
 
-```config[live,db,pass]=with\$pecial\;chars```
+```
+config[live,db,pass]=with\$pecial\;chars
+```
 
 ----
 ## Available commands
@@ -94,7 +96,7 @@ _Show this help (or append a plugin name for specific help, eg "syn --help mysql
 ### --dryrun
 _Show the commands that will be used, but don't actually run them_
 
-### --intsall
+### --install
 _Installs Syn to the local path so you can use it simply by typing 'syn'_
 
 ## Available vars
