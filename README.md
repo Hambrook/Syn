@@ -14,14 +14,14 @@ By Rick Hambrook (rick@rickhambrook.com)
 Syn was built for Bash on Linux. It should also work in Bash on Mac and Windows 10 Anniversary Edition (though this has not been tested). 
 
 ----
-## Usage
-    syn SRC DST [OPTIONS]
+## Installation
+    $ git clone https://github.com/Hambrook/Syn.git
+    $ chmod +x Syn/syn
+    $ Syn/syn --install
 
 ----
-## Installation
-Add (or symlink) the file to your `$PATH` variable, or simply to your `~/bin` directory. Eg `~/bin/syn`.
-
-I may create an installer at some point.
+## Usage
+    $ syn SRC DST [OPTIONS]
 
 ----
 ## Configuration
@@ -72,39 +72,37 @@ The configuration will be built in the following order with each file overriding
 
 Most variables can handle being surrounded in double quotes, but especially for passwords, it's best to leave the quotes off and single escape any special characters (`$;()|\`, etc), eg
 
-```
-config[live,db,pass]=with\$pecial\;chars
-```
+    config[live,db,pass]=with\$pecial\;chars
 
 ----
 ## Available commands
 
-### --actions
+### `--actions`
 _Show the actions that are configured for the src, dst, or both_
 
-### --envs
+### `--envs`
 _List available environments for the current location_
 
-### --plugins
+### `--plugins`
 _Show all the loaded plugins_
 
-### --help
+### `--help`
 _Show this help (or append a plugin name for specific help, eg "syn --help mysql")_
 
 ## Available flags
 
-### --dryrun
+### `--dryrun`
 _Show the commands that will be used, but don't actually run them_
 
-### --install
+### `--install`
 _Installs Syn to the local path so you can use it simply by typing 'syn'_
 
 ## Available vars
 
-### --file
+### `--file`
 _Specify an additional config file to load (after other attempts). Can be full or relative path, or the name of a file in your SYN_DEFAULT_PATH (see below)_
 
-### --only
+### `--only`
 _Select only the actions you want to take, comma separated_
 
 ----
