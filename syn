@@ -321,6 +321,9 @@ function syn_plugin_rsync() {
 	local -A src_paths
 	local -A dst_paths
 
+	# Defaults
+	: ${config[$dst,rsync,_flags]:=${config[_rsync_flags]}}
+
 	# Loop the environments and normalise the paths into two arrays
 
 	# Source
@@ -377,9 +380,17 @@ function syn_plugin_rsync() {
 					dst_path="$local_root/$dst_path"
 				fi
 			fi
+
+			# Are we routing through an SSH tunnel?
+			local tunnel=""
+			if [ "${config[$dst,rsync,_tunnel]}" ]; then
+				tunnel="-e 'ssh -A ${config[$dst,rsync,_tunnel]} ssh'"
+			fi
+
 			local cmd="rsync \
-				${config[_rsync_flags]} \
-				$src_ssh$src_path/
+				${config[$dst,rsync,_flags]} \
+				$tunnel \
+				$src_ssh$src_path/ \
 				$dst_ssh$dst_path
 			"
 
@@ -390,14 +401,14 @@ function syn_plugin_rsync() {
 			if ${flags[dryrun]}; then
 				echo $cmd
 			else
-				$cmd
+				eval $cmd
 			fi
 		fi
 	done
 }
 # Help: RSYNC
 function syn_plugin_rsync_help() {
-	echo "Syncronise files from one location to another using rsync
+	echo "Synchronise files from one location to another using rsync
 
 Uses a new-line separated list, with key/values separated by '='. Note no trailing slash.
 
@@ -410,12 +421,16 @@ CONFIG
 
 [root]: Path to project root (optional base for relative paths)
 dirs: Directories to sync (new-line string)
+_ssh: SSH string for the server where the dirs are located
+_tunnel: SSH string for a separate server to tunnel through
 
 --------------------------------------------------------------------------------
 
 CONFIG EXAMPLE
 
 config[live,rsync,root]=/path/to/project/root
+config[live,rsync,_ssh]=deploy@livehost
+config[live,rsync,_tunnel]=user@host.with.access.to.live
 config[live,rsync,dirs]=\"
     uploads=~/path/to/dir
     configs=/root/based/path
@@ -464,7 +479,7 @@ function syn_cmd_help() {
 	fi
 
 	echo -e "
-A pluggable system to syncronise between environments with builtin plugins
+A pluggable system to synchronise between environments with builtin plugins
 for mysql and rsync.
 
 Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]

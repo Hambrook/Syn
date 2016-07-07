@@ -53,6 +53,10 @@ Create a `.syn` file in your project root
         anotherotherpath
     "
 
+For full configuration options for each plugin, use `--help`
+
+    $ syn --help rsync
+
 ### Example of multiple configuration files
 
 You can either put all your environment configs in one file, you can have a few configurations set up such as...
