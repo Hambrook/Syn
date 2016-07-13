@@ -592,16 +592,34 @@ function syn_load_configs() {
 
 # Load specific file (from --file parameter)
 function syn_load_config_specific() {
-	if [ "${vars[file]}" ]; then
+	local old_count=$config_cnt
+	if [ "${SYN_DEFAULT_PATH}" ] && [ "${vars[file]}" == "." ]; then
+		# If there is a default location and "." was set as file
+		# then we'll use the current directory name as the filename
+		# and only check the default location for the config file.
+		vars[file]=$(pwd | sed -e 's/.*\///g')
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
-			if [ -f "$f" ]; then
-				. "$f"
-				((config_cnt++))
-			elif [ -f "${SYN_DEFAULT_PATH}/$f" ]; then
+			if [ -f "${SYN_DEFAULT_PATH}/$f" ]; then
 				. "${SYN_DEFAULT_PATH}/$f"
 				((config_cnt++))
 			fi
 		done
+	elif [ "${vars[file]}" ]; then
+		for f in "${vars[file]}" "${vars[file]}.syn"; do
+			if [ -f "$f" ]; then
+				# Otherwise we'll check the current dir for the named file
+				. "$f"
+				((config_cnt++))
+			elif [[ -d "${SYN_DEFAULT_PATH}" && -f "${SYN_DEFAULT_PATH}/$f" ]]; then
+				# And the default location too
+				. "${SYN_DEFAULT_PATH}/$f"
+				((config_cnt++))
+			fi
+		done
+	fi
+
+	if [ $old_count == $config_cnt ]; then
+		syn_error "Could not find specific config file: ${vars[file]}"
 	fi
 }
 

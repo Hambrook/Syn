@@ -147,7 +147,7 @@ For reference, see the inbuilt plugins within the main Syn file.
 
 You can specify a default path which Syn will look in (as well as the current directory) when using the `--file` parameter. For example, add this to your `.bashrc` file.
 
-    export SYN_DEFAULT_PATH="~/MySynConfigs"
+    export SYN_DEFAULT_PATH=~/MySynConfigs  # if you use '~' then DO NOT use quotes!
 
 ----
 ## Warranty
