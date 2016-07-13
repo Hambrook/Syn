@@ -104,7 +104,7 @@ _Installs Syn to the local path so you can use it simply by typing 'syn'_
 ## Available vars
 
 #### `--file`
-_Specify an additional config file to load (after other attempts). Can be full or relative path, or the name of a file in your SYN_DEFAULT_PATH (see below)_
+_Specify an additional config file to load (after other attempts). Can be full or relative path, or the name of a file in your SYN_DEFAULT_PATH (see below). This is useful if you aren't storing the syn configuration files in the project folder. You can also use `--file .` to use the current directory name as the filename_
 
 #### `--only`
 _Select only the actions you want to take, comma separated_
