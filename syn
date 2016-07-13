@@ -387,7 +387,7 @@ function syn_plugin_rsync() {
 				tunnel="-e 'ssh -A ${config[$dst,rsync,_tunnel]} ssh'"
 			fi
 
-			local cmd="rsync \
+			local rsync_cmd="rsync \
 				${config[$dst,rsync,_flags]} \
 				$tunnel \
 				$src_ssh$src_path/ \
@@ -396,12 +396,12 @@ function syn_plugin_rsync() {
 
 			# Should src be over SSH?
 			if [ "${config[$src,rsync,_ssh]}" ] && [ "${config[$dst,rsync,_ssh]}" ]; then
-				cmd=$(syn_ssh_wrap "${config[$src,rsync,_ssh]}" "$cmd")
+				rsync_cmd=$(syn_ssh_wrap "${config[$src,rsync,_ssh]}" "$rsync_cmd")
 			fi
 			if ${flags[dryrun]}; then
-				echo $cmd
+				echo $rsync_cmd
 			else
-				eval $cmd
+				eval $rsync_cmd
 			fi
 		fi
 	done
@@ -502,7 +502,7 @@ You can load your own plugins by creating \"<pluginname>.synPlugin\" files
 in a directory, then exporting that directory path as \"SYN_PLUGIN_PATH\"
 in your shell... eg:
 
-  export SYN_PLUGIN_PATH=\"~/MySynPlugins\"
+  export SYN_PLUGIN_PATH=~/MySynPlugins  # DO NOT use quotes if using '~'
 "
 # | less
 
@@ -719,7 +719,7 @@ function syn_parse_plugins() {
 
 # Do we need to show the help?
 function syn_check_help_request() {
-	if [ "$#" == 0 ] || [ $cmd == "help" ]; then
+	if [ "$#" == 0 ] || [ $cmd == "help" ] || ( [ "$#" == 2 ] && [ "${vars[file]}" ]); then
 		syn_cmd_help $src || $dst
 		exit
 	fi
