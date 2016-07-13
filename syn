@@ -597,7 +597,7 @@ function syn_load_config_specific() {
 		# If there is a default location and "." was set as file
 		# then we'll use the current directory name as the filename
 		# and only check the default location for the config file.
-		vars[file]=$(pwd | sed -e 's/.*\///g')
+		vars[file]="${SYN_DEFAULT_PATH}/$(pwd | sed -e 's/.*\///g')"
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
 			if [ -f "${SYN_DEFAULT_PATH}/$f" ]; then
 				. "${SYN_DEFAULT_PATH}/$f"
@@ -618,8 +618,14 @@ function syn_load_config_specific() {
 		done
 	fi
 
-	if [ $old_count == $config_cnt ]; then
-		syn_error "Could not find specific config file: ${vars[file]}"
+	if [ old_count == config_count ]; then
+		local err=""
+		if [ ! "${SYN_DEFAULT_PATH}" ]; then
+			err=". Also, SYN_DEFAULT_PATH is not set."
+		elif [ ! -d "${SYN_DEFAULT_PATH}" ]; then
+			err=". Also, SYN_DEFAULT_PATH (${SYN_DEFAULT_PATH}) is not valid."
+		fi
+		syn_error "Could not find specific config file (${vars[file]})$err"
 	fi
 }
 
