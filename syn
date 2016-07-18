@@ -383,7 +383,12 @@ function syn_plugin_rsync() {
 
 			# Are we routing through an SSH tunnel?
 			local tunnel=""
-			if [ "${config[$dst,rsync,_tunnel]}" ]; then
+			if [ "${config[$src,rsync,_tunnel]}" ] && [ "${config[$dst,rsync,_tunnel]}" ]; then
+				syn_error "Sorry, you can't use _tunnel for both source and destination."
+			fi
+			if [ "${config[$src,rsync,_tunnel]}" ]; then
+				tunnel="-e 'ssh -A ${config[$src,rsync,_tunnel]} ssh'"
+			elif [ "${config[$dst,rsync,_tunnel]}" ]; then
 				tunnel="-e 'ssh -A ${config[$dst,rsync,_tunnel]} ssh'"
 			fi
 
