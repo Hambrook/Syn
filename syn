@@ -623,7 +623,7 @@ function syn_load_config_specific() {
 		done
 	fi
 
-	if [ $old_count == $config_count ]; then
+	if [ "$old_count" == "$config_count" ]; then
 		local err=""
 		if [ ! "${SYN_DEFAULT_PATH}" ]; then
 			err=". Also, SYN_DEFAULT_PATH is not set."
