@@ -604,8 +604,8 @@ function syn_load_config_specific() {
 		# and only check the default location for the config file.
 		vars[file]="${SYN_DEFAULT_PATH}/$(pwd | sed -e 's/.*\///g')"
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
-			if [ -f "${SYN_DEFAULT_PATH}/$f" ]; then
-				. "${SYN_DEFAULT_PATH}/$f"
+			if [ -f "$f" ]; then
+				. "$f"
 				((config_cnt++))
 			fi
 		done
