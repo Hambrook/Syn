@@ -598,7 +598,7 @@ function syn_load_configs() {
 # Load specific file (from --file parameter)
 function syn_load_config_specific() {
 	local old_count=$config_cnt
-	if [ "${SYN_DEFAULT_PATH}" ] && [ "${vars[file]}" == "." ]; then
+	if [ -d "${SYN_DEFAULT_PATH}" ] && [ "${vars[file]}" == "." ]; then
 		# If there is a default location and "." was set as file
 		# then we'll use the current directory name as the filename
 		# and only check the default location for the config file.
@@ -637,7 +637,7 @@ function syn_load_config_specific() {
 # Config file loading
 function syn_load_plugins() {
 	plugin_cnt=0
-	if [ "$SYN_PLUGIN_PATH" ]; then
+	if [ -d "$SYN_PLUGIN_PATH" ]; then
 		for filename in $(ls ${SYN_PLUGIN_PATH}/*.synPlugin); do
 			. "$filename"
 			((plugin_cnt++))
