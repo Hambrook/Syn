@@ -270,6 +270,9 @@ function syn_cmd_envs() {
 		fi
 	done
 	echo -e "Loaded Environments:${envs}"
+	if [ "${envs}" == "" ]; then
+		echo "  <none>"
+	fi
 }
 function syn_cmd_envs_help() {
 	echo "List available environments"
@@ -312,6 +315,9 @@ function syn_cmd_plugins() {
 		plgs+="\n  $p"
 	done
 	echo -e "Loaded Plugins:${plgs}"
+	if [ "${plgs}" == "" ]; then
+		echo "  <none>"
+	fi
 }
 function syn_cmd_plugins_help() {
 	echo "List all available plugins"
