@@ -640,7 +640,7 @@ function syn_load_plugins() {
 	if [ "$SYN_PLUGIN_PATH" ]; then
 		for filename in $(ls ${SYN_PLUGIN_PATH}/*.synPlugin); do
 			. "$filename"
-			((pluign_cnt++))
+			((plugin_cnt++))
 		done
 	fi
 }
