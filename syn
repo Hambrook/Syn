@@ -80,6 +80,9 @@ declare plugin_dir_builtin
 declare plugin_dir_custom
 declare default_config_dir
 
+# Default settings for plugins to extend
+declare -A config
+
 # Flags
 declare -A flags=(
 	[dryrun]=false
@@ -97,9 +100,6 @@ declare -A vars_help=(
 	[file]="Specify a config file to load (after other attempts)"
 	[only]="Select only the actions you want to take, comma separated"
 )
-
-# Defaults
-declare -A config
 
 
 ################################################################################
@@ -323,6 +323,7 @@ function syn_cmd_plugins_help() {
 	echo "List all available plugins"
 }
 
+# Install the thing
 function syn_cmd_install() {
 	if [ -L "${BASH_SOURCE[0]}" ]; then
 		syn_error "Syn is already installed as a SymLink."
@@ -333,7 +334,6 @@ function syn_cmd_install() {
 	sudo ln -s "$(readlink -f $0)" "/usr/local/bin/syn";
 	echo "You can now run this script simply by typing 'syn'"
 }
-
 function syn_cmd_install_help() {
 	echo "Installs Syn to your executable path for ease-of-use";
 }
@@ -559,7 +559,7 @@ function syn_validate_require_two_envs() {
 
 
 ################################################################################
-# COSTMETICS
+# COSMETICS
 ################################################################################
 
 # The banner
@@ -575,7 +575,6 @@ function syn_banner() {
           |___/
 "
 }
-
 
 
 ################################################################################
@@ -614,6 +613,7 @@ function syn_cmd_sync() {
 }
 
 
+# Main processing function
 function main() {
 	# Load and parse everything
 	syn_init
@@ -633,5 +633,6 @@ function main() {
 	# Let's get out of here
 	exit
 }
+
 
 main $@
