@@ -11,8 +11,8 @@
 
 
 # TODO
-# [ ] Add rsync ssh proxy (-e "ssh -A root@proxy ssh")
-# [ ] Fix rsync flags not being applied
+# [X] Add rsync ssh proxy (-e "ssh -A root@proxy ssh")
+# [X] Fix rsync flags not being applied
 # [X] Update plugin docs with new naming scheme, and flag/var support
 # [ ] Use centralised config file for paths and setting, docker/docker-machine (location optionally configurable via env var)
 # [ ] Add boot2docker support
