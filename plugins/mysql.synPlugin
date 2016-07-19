@@ -1,0 +1,156 @@
+# mysql plugin defaults
+config[_mysql_path]="mysql"
+config[_mysql_dump]="mysqldump"
+config[_mysql_host]="127.0.0.1"
+config[_mysql_user]="root"
+config[_mysql_pass]="root"
+config[_mysql_port]=3306
+config[_mysql_skip]=""
+config[_mysql_flags]="--add-drop-database --compress --hex-blob --opt --quote-names -v"
+config[_mysql_docker]=""
+config[_mysql_ssh]=""
+
+
+# Plugin: MySQL
+function syn_plugin_mysql() {
+	# Require two db names
+	if [ ! "${config[$src,mysql,name]}" ] || [ ! "${config[$dst,mysql,name]}" ]; then
+		syn_error "There must be DB names for both evironments"
+	fi
+
+	# Defaults
+	: ${config[$src,mysql,dump]:=${config[_mysql_dump]}}
+	: ${config[$src,mysql,host]:=${config[_mysql_host]}}
+	: ${config[$src,mysql,user]:=${config[_mysql_user]}}
+	: ${config[$src,mysql,pass]:=${config[_mysql_pass]}}
+	: ${config[$src,mysql,port]:=${config[_mysql_port]}}
+	: ${config[$src,mysql,_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$src,mysql,_docker]:=${config[_mysql_docker]}}
+	: ${config[$src,mysql,only]:=${config[_mysql_only]}}
+	: ${config[$src,mysql,skip]:=${config[_mysql_skip]}}
+	: ${config[$src,mysql,stru]:=${config[_mysql_stru]}}
+	: ${config[$src,mysql,flags]:=${config[_mysql_flags]}}
+
+	: ${config[$dst,mysql,path]:=${config[_mysql_path]}}
+	: ${config[$dst,mysql,host]:=${config[_mysql_host]}}
+	: ${config[$dst,mysql,user]:=${config[_mysql_user]}}
+	: ${config[$dst,mysql,pass]:=${config[_mysql_pass]}}
+	: ${config[$dst,mysql,port]:=${config[_mysql_port]}}
+	: ${config[$dst,mysql,_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$dst,mysql,_docker]:=${config[_mysql_docker]}}
+
+	local db_actions="initial"
+	if [ "${config[$src,mysql,stru]}" ]; then
+		db_actions="$db_actions structure"
+	fi
+
+	for action in $db_actions; do
+
+		# Build out the skipped tables
+		local skip=""
+		local tables=""
+		if [ $action == "initial" ]; then
+			for table in ${config[$src,mysql,only]}; do
+				skip+=" $table"
+			done
+			for table in ${config[$src,mysql,skip]} ${config[$src,mysql,stru]}; do
+				skip+=" --ignore-table=${config[$src,mysql,name]}.$table"
+			done
+		else
+			tables="-d"
+			for table in ${config[$src,mysql,stru]}; do
+				tables+=" $table"
+			done
+		fi
+
+		# Build the src command
+		local cmdSrc="${config[$src,mysql,dump]} \
+			${config[$src,mysql,name]} \
+			${config[$src,mysql,flags]} \
+			$skip \
+			$tables \
+			-h${config[$src,mysql,host]} \
+			-u${config[$src,mysql,user]} \
+			-p${config[$src,mysql,pass]} \
+			-P${config[$src,mysql,port]} \
+		"
+
+		# Should src be sent to a docker container?
+		if [ "${config[$src,mysql,_docker]}" ]; then
+			cmdSrc=$(syn_docker_wrap "${config[$src,mysql,_docker]}" "$cmdSrc")
+		fi
+
+		# Should src be over SSH?
+		if [ "${config[$src,mysql,_ssh]}" ]; then
+			cmdSrc=$(syn_ssh_wrap "${config[$src,mysql,_ssh]}" "$cmdSrc")
+		fi
+
+		# Build the dst command
+		local cmdDst="${config[$dst,mysql,path]} \
+			-D${config[$dst,mysql,name]} \
+			-h${config[$dst,mysql,host]} \
+			-u${config[$dst,mysql,user]} \
+			-p${config[$dst,mysql,pass]} \
+			-P${config[$dst,mysql,port]} \
+		"
+
+		# Should dst be sent to a docker container?
+		if [ "${config[$dst,mysql,_docker]}" ]; then
+			cmdDst=$(syn_docker_wrap "${config[$dst,mysql,_docker]}" "$cmdDst" "-i")
+		fi
+
+		# Should dst be over SSH?
+		if [ "${config[$dst,mysql,_ssh]}" ]; then
+			cmdDst=$(syn_ssh_wrap "${config[$dst,mysql,_ssh]}" "$cmdDst")
+		fi
+
+		# Finish up
+		if ${flags[dryrun]}; then
+			echo -e "$cmdSrc | $cmdDst"
+		else
+			$cmdSrc | $cmdDst
+		fi
+
+	done
+}
+
+
+# Help: MySQL
+function syn_plugin_mysql_help() {
+	echo "Copy a database from one location to another
+
+--------------------------------------------------------------------------------
+
+CONFIG
+
+name:      The database name
+[path]:    Path to mysql executable (default mysql)
+[dump]:    Path to mysqldump executable (default mysqldump)
+[host]:    The database host (default 127.0.0.1)
+[user]:    The database user (default root)
+[pass]:    The database pass (default root)
+[port]:    The database port (default 3306)
+[only]:    Tables to copy (and only these tables) (new-line string)
+[skip]:    Tables to skip (new-line string)
+[stru]:    Tables to only copy the structure for, not data (new-line string)
+[flags]:   Optional mysql flags to use when dumping
+[_ssh]:    SSH connection string
+[_docker]: Docker container name
+
+--------------------------------------------------------------------------------
+
+CONFIG EXAMPLE
+
+config[live,mysql,name]=myproddb
+config[live,mysql,user]=myuser
+config[live,mysql,pass]=mypass
+config[live,mysql,skip]=\"
+    oldtable
+    someothertable
+\"
+config[live,mysql,stru]=\"
+    cache
+    eventlog
+\"
+"
+}

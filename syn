@@ -73,6 +73,12 @@ declare -A actions
 declare -A commands
 declare -A environments
 declare -A plugins
+declare exec_path="${BASH_SOURCE[0]}"
+declare real_path
+declare real_dir
+declare plugin_dir_builtin
+declare plugin_dir_custom
+declare default_config_dir
 
 # Flags
 declare -A flags=(
@@ -93,29 +99,31 @@ declare -A vars_help=(
 )
 
 # Defaults
-declare -A config=(
-	# mysql plugin defaults
-	[_mysql_path]="mysql"
-	[_mysql_dump]="mysqldump"
-	[_mysql_host]="127.0.0.1"
-	[_mysql_user]="root"
-	[_mysql_pass]="root"
-	[_mysql_port]=3306
-	[_mysql_skip]=""
-	[_mysql_flags]="--add-drop-database --compress --hex-blob --opt --quote-names -v"
-	[_mysql_docker]=""
-	[_mysql_ssh]=""
-	# rsync plugin defaults
-	[_rsync_flags]="-aclruv" #archive, checksum, symlinks as symlinks, recursive, skip newer files, verbose
-	[_rsync_docker]=""
-	[_rsync_ssh]=""
-	[_rsync_dirs]=""
-)
+declare -A config
 
 
 ################################################################################
 # MISC HELPERS
 ################################################################################
+
+# Initialise a few paths etc
+function syn_init() {
+	real_path="${exec_path}"
+	if [ -L "${exec_path}" ]; then
+		real_path="$(readlink "${exec_path}")"
+	fi
+	local real_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
+
+	plugin_dir_builtin="${real_dir}/plugins"
+
+	if [ "${SYN_PLUGIN_PATH}" ] && [ -d "${SYN_PLUGIN_PATH}" ]; then
+		plugin_dir_custom="${SYN_PLUGIN_PATH}"
+	fi
+
+	if [ "${SYN_DEFAULT_PATH}" ] && [ -d "${SYN_DEFAULT_PATH}" ]; then
+		default_config_dir="${SYN_DEFAULT_PATH}"
+	fi
+}
 
 # Exit with an error and a non-successful exit code
 function syn_error() {
@@ -167,280 +175,6 @@ function syn_docker_wrap() {
 	# $2 = command
 	# $3 = additional flags
 	echo "docker exec $3 $1 $2"
-}
-
-
-################################################################################
-# BUILTIN PLUGINS
-################################################################################
-
-# Plugin: MySQL
-function syn_plugin_mysql() {
-	# Require two db names
-	if [ ! "${config[$src,mysql,name]}" ] || [ ! "${config[$dst,mysql,name]}" ]; then
-		syn_error "There must be DB names for both evironments"
-	fi
-
-	# Defaults
-	: ${config[$src,mysql,dump]:=${config[_mysql_dump]}}
-	: ${config[$src,mysql,host]:=${config[_mysql_host]}}
-	: ${config[$src,mysql,user]:=${config[_mysql_user]}}
-	: ${config[$src,mysql,pass]:=${config[_mysql_pass]}}
-	: ${config[$src,mysql,port]:=${config[_mysql_port]}}
-	: ${config[$src,mysql,_ssh]:=${config[_mysql_ssh]}}
-	: ${config[$src,mysql,_docker]:=${config[_mysql_docker]}}
-	: ${config[$src,mysql,only]:=${config[_mysql_only]}}
-	: ${config[$src,mysql,skip]:=${config[_mysql_skip]}}
-	: ${config[$src,mysql,stru]:=${config[_mysql_stru]}}
-	: ${config[$src,mysql,flags]:=${config[_mysql_flags]}}
-
-	: ${config[$dst,mysql,path]:=${config[_mysql_path]}}
-	: ${config[$dst,mysql,host]:=${config[_mysql_host]}}
-	: ${config[$dst,mysql,user]:=${config[_mysql_user]}}
-	: ${config[$dst,mysql,pass]:=${config[_mysql_pass]}}
-	: ${config[$dst,mysql,port]:=${config[_mysql_port]}}
-	: ${config[$dst,mysql,_ssh]:=${config[_mysql_ssh]}}
-	: ${config[$dst,mysql,_docker]:=${config[_mysql_docker]}}
-
-	local db_actions="initial"
-	if [ "${config[$src,mysql,stru]}" ]; then
-		db_actions="$db_actions structure"
-	fi
-
-	for action in $db_actions; do
-
-		# Build out the skipped tables
-		local skip=""
-		local tables=""
-		if [ $action == "initial" ]; then
-			for table in ${config[$src,mysql,only]}; do
-				skip+=" $table"
-			done
-			for table in ${config[$src,mysql,skip]} ${config[$src,mysql,stru]}; do
-				skip+=" --ignore-table=${config[$src,mysql,name]}.$table"
-			done
-		else
-			tables="-d"
-			for table in ${config[$src,mysql,stru]}; do
-				tables+=" $table"
-			done
-		fi
-
-		# Build the src command
-		local cmdSrc="${config[$src,mysql,dump]} \
-			${config[$src,mysql,name]} \
-			${config[$src,mysql,flags]} \
-			$skip \
-			$tables \
-			-h${config[$src,mysql,host]} \
-			-u${config[$src,mysql,user]} \
-			-p${config[$src,mysql,pass]} \
-			-P${config[$src,mysql,port]} \
-		"
-
-		# Should src be sent to a docker container?
-		if [ "${config[$src,mysql,_docker]}" ]; then
-			cmdSrc=$(syn_docker_wrap "${config[$src,mysql,_docker]}" "$cmdSrc")
-		fi
-
-		# Should src be over SSH?
-		if [ "${config[$src,mysql,_ssh]}" ]; then
-			cmdSrc=$(syn_ssh_wrap "${config[$src,mysql,_ssh]}" "$cmdSrc")
-		fi
-
-		# Build the dst command
-		local cmdDst="${config[$dst,mysql,path]} \
-			-D${config[$dst,mysql,name]} \
-			-h${config[$dst,mysql,host]} \
-			-u${config[$dst,mysql,user]} \
-			-p${config[$dst,mysql,pass]} \
-			-P${config[$dst,mysql,port]} \
-		"
-
-		# Should dst be sent to a docker container?
-		if [ "${config[$dst,mysql,_docker]}" ]; then
-			cmdDst=$(syn_docker_wrap "${config[$dst,mysql,_docker]}" "$cmdDst" "-i")
-		fi
-
-		# Should dst be over SSH?
-		if [ "${config[$dst,mysql,_ssh]}" ]; then
-			cmdDst=$(syn_ssh_wrap "${config[$dst,mysql,_ssh]}" "$cmdDst")
-		fi
-
-		# Finish up
-		if ${flags[dryrun]}; then
-			echo -e "$cmdSrc | $cmdDst"
-		else
-			$cmdSrc | $cmdDst
-		fi
-
-	done
-}
-# Help: MySQL
-function syn_plugin_mysql_help() {
-	echo "Copy a database from one location to another
-
---------------------------------------------------------------------------------
-
-CONFIG
-
-name:      The database name
-[path]:    Path to mysql executable (default mysql)
-[dump]:    Path to mysqldump executable (default mysqldump)
-[host]:    The database host (default 127.0.0.1)
-[user]:    The database user (default root)
-[pass]:    The database pass (default root)
-[port]:    The database port (default 3306)
-[only]:    Tables to copy (and only these tables) (new-line string)
-[skip]:    Tables to skip (new-line string)
-[stru]:    Tables to only copy the structure for, not data (new-line string)
-[flags]:   Optional mysql flags to use when dumping
-[_ssh]:    SSH connection string
-[_docker]: Docker container name
-
---------------------------------------------------------------------------------
-
-CONFIG EXAMPLE
-
-config[live,mysql,name]=myproddb
-config[live,mysql,user]=myuser
-config[live,mysql,pass]=mypass
-config[live,mysql,skip]=\"
-    oldtable
-    someothertable
-\"
-config[live,mysql,stru]=\"
-    cache
-    eventlog
-\"
-"
-}
-
-# Plugin: RSYNC
-function syn_plugin_rsync() {
-	local -A src_paths
-	local -A dst_paths
-
-	# Defaults
-	: ${config[$dst,rsync,_flags]:=${config[_rsync_flags]}}
-
-	# Loop the environments and normalise the paths into two arrays
-
-	# Source
-	local cnt=0
-	for file in ${config[$src,rsync,dirs]}; do
-		((cnt++))
-		local pathinfo=(${file//=/ })
-		if [ "${pathinfo[1]}" ]; then
-			src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
-		else
-			src_paths["$cnt"]="${pathinfo[0]}"
-		fi
-	done
-	local src_ssh=""
-	if [ "${config[$src,rsync,_ssh]}" ]; then
-		src_ssh="${config[$src,rsync,_ssh]}:"
-	fi
-
-	# Destination
-	cnt=0
-	for file in ${config[$dst,rsync,dirs]}; do
-		((cnt++))
-		local pathinfo=(${file//=/ })
-		if [ "${pathinfo[1]}" ]; then
-			dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
-		else
-			dst_paths["$cnt"]="${pathinfo[0]}"
-		fi
-	done
-	local dst_ssh=""
-	if [ "${config[$dst,rsync,_ssh]}" ]; then
-		dst_ssh="${config[$dst,rsync,_ssh]}:"
-		src_ssh="" # Can't use two remotes
-	fi
-
-	# Loop it and create the commands
-
-	for i in "${!src_paths[@]}"; do
-		if [ "${dst_paths[$i]}" ]; then
-			local pattern="^(~|/|./|../)"
-			local src_path="$(echo -e "${src_paths[$i]}" | sed -e 's/\*$//')"
-			if [[ ( ( "${config[$src,rsync,root]}" ) || ( $local_root && ! "${config[$src,rsync,_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
-				if [ "${config[$src,rsync,root]}" ]; then
-					src_path="${config[$src,rsync,root]}/$src_path"
-				else
-					src_path="$local_root/$src_path"
-				fi
-			fi
-			local dst_path="$(echo -e "${dst_paths[$i]}" | sed -e 's/\*$//')"
-			if [[ ( ( "${config[$dst,rsync,root]}" ) || ( $local_root && ! "${config[$dst,rsync,_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
-				if [ "${config[$dst,rsync,root]}" ]; then
-					dst_path="${config[$dst,rsync,root]}/$dst_path"
-				else
-					dst_path="$local_root/$dst_path"
-				fi
-			fi
-
-			# Are we routing through an SSH tunnel?
-			local tunnel=""
-			if [ "${config[$src,rsync,_tunnel]}" ] && [ "${config[$dst,rsync,_tunnel]}" ]; then
-				syn_error "Sorry, you can't use _tunnel for both source and destination."
-			fi
-			if [ "${config[$src,rsync,_tunnel]}" ]; then
-				tunnel="-e 'ssh -A ${config[$src,rsync,_tunnel]} ssh'"
-			elif [ "${config[$dst,rsync,_tunnel]}" ]; then
-				tunnel="-e 'ssh -A ${config[$dst,rsync,_tunnel]} ssh'"
-			fi
-
-			local rsync_cmd="rsync \
-				${config[$dst,rsync,_flags]} \
-				$tunnel \
-				$src_ssh$src_path/ \
-				$dst_ssh$dst_path
-			"
-
-			# Should src be over SSH?
-			if [ "${config[$src,rsync,_ssh]}" ] && [ "${config[$dst,rsync,_ssh]}" ]; then
-				rsync_cmd=$(syn_ssh_wrap "${config[$src,rsync,_ssh]}" "$rsync_cmd")
-			fi
-			if ${flags[dryrun]}; then
-				echo $rsync_cmd
-			else
-				eval $rsync_cmd
-			fi
-		fi
-	done
-}
-# Help: RSYNC
-function syn_plugin_rsync_help() {
-	echo "Synchronise files from one location to another using rsync
-
-Uses a new-line separated list, with key/values separated by '='. Note no trailing slash.
-
-Relative paths will be prepended by the local root from either \$config[env,rsync,root]
-or the deepest location of a .syn from the current directory up to the root.
-
---------------------------------------------------------------------------------
-
-CONFIG
-
-[root]: Path to project root (optional base for relative paths)
-dirs: Directories to sync (new-line string)
-_ssh: SSH string for the server where the dirs are located
-_tunnel: SSH string for a separate server to tunnel through
-
---------------------------------------------------------------------------------
-
-CONFIG EXAMPLE
-
-config[live,rsync,root]=/path/to/project/root
-config[live,rsync,_ssh]=deploy@livehost
-config[live,rsync,_tunnel]=user@host.with.access.to.live
-config[live,rsync,dirs]=\"
-    uploads=~/path/to/dir
-    configs=/root/based/path
-\"
-"
 }
 
 
@@ -598,11 +332,11 @@ function syn_load_configs() {
 # Load specific file (from --file parameter)
 function syn_load_config_specific() {
 	local old_count=$config_cnt
-	if [ -d "${SYN_DEFAULT_PATH}" ] && [ "${vars[file]}" == "." ]; then
+	if [ -d "${default_config_dir}" ] && [ "${vars[file]}" == "." ]; then
 		# If there is a default location and "." was set as file
 		# then we'll use the current directory name as the filename
 		# and only check the default location for the config file.
-		vars[file]="${SYN_DEFAULT_PATH}/$(pwd | sed -e 's/.*\///g')"
+		vars[file]="${default_config_dir}/$(pwd | sed -e 's/.*\///g')"
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
 			if [ -f "$f" ]; then
 				. "$f"
@@ -615,9 +349,9 @@ function syn_load_config_specific() {
 				# Otherwise we'll check the current dir for the named file
 				. "$f"
 				((config_cnt++))
-			elif [[ -d "${SYN_DEFAULT_PATH}" && -f "${SYN_DEFAULT_PATH}/$f" ]]; then
+			elif [[ -d "${default_config_dir}" && -f "${default_config_dir}/$f" ]]; then
 				# And the default location too
-				. "${SYN_DEFAULT_PATH}/$f"
+				. "${default_config_dir}/$f"
 				((config_cnt++))
 			fi
 		done
@@ -634,11 +368,17 @@ function syn_load_config_specific() {
 	fi
 }
 
-# Config file loading
+# Load bundled and external plugins
 function syn_load_plugins() {
 	plugin_cnt=0
-	if [ -d "$SYN_PLUGIN_PATH" ]; then
-		for filename in $(ls ${SYN_PLUGIN_PATH}/*.synPlugin); do
+	if [ -d "$plugin_dir_builtin" ]; then
+		for filename in $(ls ${plugin_dir_builtin}/*.synPlugin); do
+			. "$filename"
+			((plugin_cnt++))
+		done
+	fi
+	if [ -d "$plugin_dir_custom" ]; then
+		for filename in $(ls ${plugin_dir_custom}/*.synPlugin); do
 			. "$filename"
 			((plugin_cnt++))
 		done
@@ -844,6 +584,7 @@ function syn_cmd_sync() {
 
 function main() {
 	# Load and parse everything
+	syn_init
 	syn_load_configs
 	syn_load_plugins
 	syn_parse_commands

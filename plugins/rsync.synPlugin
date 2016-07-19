@@ -1,0 +1,135 @@
+# rsync plugin defaults
+config[_rsync_flags]="-aclruv" #archive, checksum, symlinks as symlinks, recursive, skip newer files, verbose
+config[_rsync_docker]=""
+config[_rsync_ssh]=""
+config[_rsync_dirs]=""
+
+
+# Plugin: RSYNC
+function syn_plugin_rsync() {
+	local -A src_paths
+	local -A dst_paths
+
+	# Defaults
+	: ${config[$dst,rsync,_flags]:=${config[_rsync_flags]}}
+
+	# Loop the environments and normalise the paths into two arrays
+
+	# Source
+	local cnt=0
+	for file in ${config[$src,rsync,dirs]}; do
+		((cnt++))
+		local pathinfo=(${file//=/ })
+		if [ "${pathinfo[1]}" ]; then
+			src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+		else
+			src_paths["$cnt"]="${pathinfo[0]}"
+		fi
+	done
+	local src_ssh=""
+	if [ "${config[$src,rsync,_ssh]}" ]; then
+		src_ssh="${config[$src,rsync,_ssh]}:"
+	fi
+
+	# Destination
+	cnt=0
+	for file in ${config[$dst,rsync,dirs]}; do
+		((cnt++))
+		local pathinfo=(${file//=/ })
+		if [ "${pathinfo[1]}" ]; then
+			dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+		else
+			dst_paths["$cnt"]="${pathinfo[0]}"
+		fi
+	done
+	local dst_ssh=""
+	if [ "${config[$dst,rsync,_ssh]}" ]; then
+		dst_ssh="${config[$dst,rsync,_ssh]}:"
+		src_ssh="" # Can't use two remotes
+	fi
+
+	# Loop it and create the commands
+
+	for i in "${!src_paths[@]}"; do
+		if [ "${dst_paths[$i]}" ]; then
+			local pattern="^(~|/|./|../)"
+			local src_path="$(echo -e "${src_paths[$i]}" | sed -e 's/\*$//')"
+			if [[ ( ( "${config[$src,rsync,root]}" ) || ( $local_root && ! "${config[$src,rsync,_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
+				if [ "${config[$src,rsync,root]}" ]; then
+					src_path="${config[$src,rsync,root]}/$src_path"
+				else
+					src_path="$local_root/$src_path"
+				fi
+			fi
+			local dst_path="$(echo -e "${dst_paths[$i]}" | sed -e 's/\*$//')"
+			if [[ ( ( "${config[$dst,rsync,root]}" ) || ( $local_root && ! "${config[$dst,rsync,_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
+				if [ "${config[$dst,rsync,root]}" ]; then
+					dst_path="${config[$dst,rsync,root]}/$dst_path"
+				else
+					dst_path="$local_root/$dst_path"
+				fi
+			fi
+
+			# Are we routing through an SSH tunnel?
+			local tunnel=""
+			if [ "${config[$src,rsync,_tunnel]}" ] && [ "${config[$dst,rsync,_tunnel]}" ]; then
+				syn_error "Sorry, you can't use _tunnel for both source and destination."
+			fi
+			if [ "${config[$src,rsync,_tunnel]}" ]; then
+				tunnel="-e 'ssh -A ${config[$src,rsync,_tunnel]} ssh'"
+			elif [ "${config[$dst,rsync,_tunnel]}" ]; then
+				tunnel="-e 'ssh -A ${config[$dst,rsync,_tunnel]} ssh'"
+			fi
+
+			local rsync_cmd="rsync \
+				${config[$dst,rsync,_flags]} \
+				$tunnel \
+				$src_ssh$src_path/ \
+				$dst_ssh$dst_path
+			"
+
+			# Should src be over SSH?
+			if [ "${config[$src,rsync,_ssh]}" ] && [ "${config[$dst,rsync,_ssh]}" ]; then
+				rsync_cmd=$(syn_ssh_wrap "${config[$src,rsync,_ssh]}" "$rsync_cmd")
+			fi
+			if ${flags[dryrun]}; then
+				echo $rsync_cmd
+			else
+				eval $rsync_cmd
+			fi
+		fi
+	done
+}
+
+
+# Help: RSYNC
+function syn_plugin_rsync_help() {
+	echo "Synchronise files from one location to another using rsync
+
+Uses a new-line separated list, with key/values separated by '='. Note no trailing slash.
+
+Relative paths will be prepended by the local root from either \$config[env,rsync,root]
+or the deepest location of a .syn from the current directory up to the root.
+
+--------------------------------------------------------------------------------
+
+CONFIG
+
+[root]: Path to project root (optional base for relative paths)
+dirs: Directories to sync (new-line string)
+_ssh: SSH string for the server where the dirs are located
+_tunnel: SSH string for a separate server to tunnel through
+
+--------------------------------------------------------------------------------
+
+CONFIG EXAMPLE
+
+config[live,rsync,root]=/path/to/project/root
+config[live,rsync,_ssh]=deploy@livehost
+config[live,rsync,_tunnel]=user@host.with.access.to.live
+config[live,rsync,dirs]=\"
+    uploads=~/path/to/dir
+    configs=/root/based/path
+\"
+"
+}

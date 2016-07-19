@@ -120,7 +120,7 @@ Syn will automatically warn you before trying to synchronise TO any environment 
 ----
 ## Plugins
 
-Syn includes `mysql` and `rsync` plugins by default. But you can easily integrate your own plugins written in Bash.
+Syn includes `mysql` and `rsync` plugins by default (see the `plugins/` directory). But you can easily integrate your own plugins written in Bash.
 
 Third-party plugins are all loaded from one directory (and that directory path must be set in your Bash environment).
 
@@ -140,7 +140,7 @@ The help function will be called from Syn's help system when requested by the us
 
 The other function will be called when it's time for you plugin to do its thing. It will have access to the `config` global variable which contains the entire merged configuration for Syn.
 
-For reference, see the inbuilt plugins within the main Syn file.
+For reference, see the included plugins in the `plugins/` directory.
 
 ----
 ## Default Path
