@@ -237,11 +237,7 @@ $(syn_cmd_envs)
 
 $(syn_cmd_plugins)
 
-You can load your own plugins by creating \"<pluginname>.synPlugin\" files
-in a directory, then exporting that directory path as \"SYN_PLUGIN_PATH\"
-in your shell... eg:
-
-  export SYN_PLUGIN_PATH=~/MySynPlugins  # DO NOT use quotes if using '~'
+$(syn_cmd_paths)
 "
 # | less
 
@@ -277,6 +273,36 @@ function syn_cmd_envs() {
 }
 function syn_cmd_envs_help() {
 	echo "List available environments"
+}
+
+# Show paths
+function syn_cmd_paths() {
+	local tmp_plugin_dir_custom
+	local tmp_default_config_dir
+	if [ "${SYN_PLUGIN_PATH}" ]; then
+		if [ -d "${SYN_PLUGIN_PATH}" ]; then
+			tmp_plugin_dir_custom="${SYN_PLUGIN_PATH}"
+		else
+			tmp_plugin_dir_custom="${SYN_PLUGIN_PATH} (DOES NOT EXIST)"
+		fi
+	else
+		tmp_plugin_dir_custom="<not set>"
+	fi
+	if [ "${SYN_DEFAULT_PATH}" ]; then
+		if [ -d "${SYN_DEFAULT_PATH}" ]; then
+			tmp_default_config_dir="${SYN_DEFAULT_PATH}"
+		else
+			tmp_default_config_dir="${SYN_DEFAULT_PATH} (DOES NOT EXIST)"
+		fi
+	else
+		tmp_default_config_dir="<not set>"
+	fi
+	echo "Custom Paths:"
+	echo "  SYN_PLUGIN_PATH: ${tmp_plugin_dir_custom}"
+	echo "  SYN_DEFAULT_PATH: ${tmp_default_config_dir}"
+}
+function syn_cmd_paths_help() {
+	echo "List configured paths"
 }
 
 # Show plugins
