@@ -112,7 +112,7 @@ function syn_init() {
 	if [ -L "${exec_path}" ]; then
 		real_path="$(readlink "${exec_path}")"
 	fi
-	local real_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
+	real_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
 
 	plugin_dir_builtin="${real_dir}/plugins"
 
@@ -133,7 +133,7 @@ function syn_error() {
 
 # Show a prompt for confirmation
 function syn_confirm() {
-	read -p "$@ [y/n]: " response
+	read -p "$* [y/n]: " response
 	if [[ $response =~ ^[Yy].* ]]; then
 		return 1
 	fi
@@ -142,10 +142,10 @@ function syn_confirm() {
 
 # In Array
 function in_array() {
-	local haystack=${1}[@]
+	local haystack="${1}[@]"
 	local needle=${2}
 	for i in ${!haystack}; do
-		if [[ ${i} == ${needle} ]]; then
+		if [[ ${i} == "${needle}" ]]; then
 			return 0
 		fi
 	done
@@ -184,21 +184,21 @@ function syn_docker_wrap() {
 
 function syn_render_help_commands() {
 	echo "Commands:"
-	for c in ${!commands[@]}; do
+	for c in ${!commands[*]}; do
 		echo -e "                    $(${commands[$c]})\r  --$c"
 	done
 }
 
 function syn_render_help_flags() {
 	echo "Flags:"
-	for f in ${!flags_help[@]}; do
+	for f in ${!flags_help[*]}; do
 		echo -e "                    ${flags_help[$f]}\r  --$f"
 	done
 }
 
 function syn_render_help_vars() {
 	echo "Vars:"
-	for v in ${!vars_help[@]}; do
+	for v in ${!vars_help[*]}; do
 		echo -e "                    ${vars_help[$v]}\r  --$v"
 	done
 }
@@ -207,10 +207,10 @@ function syn_render_help_vars() {
 # lists of environments and plugins
 function syn_cmd_help() {
 	syn_banner
-	if [ $1 ]; then
+	if [ "$1" ]; then
 		if [[ $(set | grep "syn_plugin_${1}_help ()") ]]; then
 			echo -e "Showing help for plugin: $1\n";
-			syn_plugin_${1}_help
+			eval "syn_plugin_${1}_help"
 			exit
 		else
 			syn_error "Plugin '$1' not found"
@@ -263,8 +263,8 @@ function syn_cmd_actions_help() {
 function syn_cmd_envs() {
 	# $1 = [true/false] show 'readonly' status
 	local envs=""
-	for e in ${environments[@]}; do
-		envs=$(echo "$envs\n  $e")
+	for e in ${environments[*]}; do
+		envs+="\n  $e"
 		if [ ! "$1" == true ] && [ "${config[$e,_allow]}" == false ]; then
 			envs+=" [read only]"
 		fi
@@ -311,7 +311,7 @@ function syn_cmd_paths_help() {
 # Show plugins
 function syn_cmd_plugins() {
 	local plgs=""
-	for p in $plugins; do
+	for p in ${plugins[*]}; do
 		plgs+="\n  $p"
 	done
 	echo -e "Loaded Plugins:${plgs}"
@@ -331,7 +331,7 @@ function syn_cmd_install() {
 	if [ -e "/usr/local/bin/syn" ]; then
 		syn_error "Syn is already installed to your path."
 	fi
-	sudo ln -s "$(readlink -f $0)" "/usr/local/bin/syn";
+	sudo ln -s "$(readlink -f "$0")" "/usr/local/bin/syn";
 	echo "You can now run this script simply by typing 'syn'"
 }
 function syn_cmd_install_help() {
@@ -348,7 +348,7 @@ function syn_load_configs() {
 	config_cnt=0
 	for filename in ".syn.global" ".syn" ".syn.local"; do
 		currpath="$(pwd)"
-		while [ $currpath != "/" ]; do
+		while [ "$currpath" != "/" ]; do
 			if [ -r "$currpath/$filename" ]; then
 				. "$currpath/$filename"
 				((config_cnt++))
@@ -356,7 +356,7 @@ function syn_load_configs() {
 					local_root="$currpath"
 				fi
 			fi
-			currpath="$(cd $currpath ; cd .. ; pwd)"
+			currpath="$(cd "$currpath" ; cd .. ; pwd)"
 		done
 	done
 }
@@ -389,7 +389,7 @@ function syn_load_config_specific() {
 		done
 	fi
 
-	if [ "$old_count" == "$config_count" ]; then
+	if [ "${vars[file]}" ] && [ "$old_count" == "$config_cnt" ]; then
 		local err=""
 		if [ ! "${SYN_DEFAULT_PATH}" ]; then
 			err=". Also, SYN_DEFAULT_PATH is not set."
@@ -404,13 +404,13 @@ function syn_load_config_specific() {
 function syn_load_plugins() {
 	plugin_cnt=0
 	if [ -d "$plugin_dir_builtin" ]; then
-		for filename in $(ls ${plugin_dir_builtin}/*.synPlugin); do
+		for filename in ${plugin_dir_builtin}/*.synPlugin; do
 			. "$filename"
 			((plugin_cnt++))
 		done
 	fi
 	if [ -d "$plugin_dir_custom" ]; then
-		for filename in $(ls ${plugin_dir_custom}/*.synPlugin); do
+		for filename in ${plugin_dir_custom}/*.synPlugin; do
 			. "$filename"
 			((plugin_cnt++))
 		done
@@ -432,14 +432,14 @@ function syn_parse_actions() {
 				: ${tmp[${BASH_REMATCH[1]}]:=${BASH_REMATCH[1]}}
 			fi
 		done
-		vars[only]=${tmp[@]}
+		vars[only]=${tmp[*]}
 	fi
 }
 
 # Get the available plugins
 function syn_parse_commands() {
 	for c in $(compgen -A function syn_cmd_); do
-		local cmd=$(echo "${c//syn_cmd_/ }")
+		local cmd="${c//syn_cmd_/}"
 		if [[ $c =~ ^syn_cmd_(.+?)_help$ ]]; then
 			commands[${BASH_REMATCH[1]}]="$c"
 		fi
@@ -462,13 +462,13 @@ function syn_parse_parameters() {
 	# Tried a switch statement, this more efficient
 	for ((i=1; i<=$#; i++)); do
 		if [[ ${!i} =~ ^\-\-(.*) ]]; then
-			if array_key_exists ${BASH_REMATCH[1]} flags; then
+			if array_key_exists "${BASH_REMATCH[1]}" flags; then
 				flags[${BASH_REMATCH[1]}]=true
-			elif array_key_exists ${BASH_REMATCH[1]} vars; then
+			elif array_key_exists "${BASH_REMATCH[1]}" vars; then
 				((i++))
 				vars[${BASH_REMATCH[1]}]="${!i}"
-			elif array_key_exists ${BASH_REMATCH[1]} commands; then
-				cmd=${BASH_REMATCH[1]}
+			elif array_key_exists "${BASH_REMATCH[1]}" commands; then
+				cmd="${BASH_REMATCH[1]}"
 			fi
 		elif [[ ! ${!i} =~ ^- ]]; then
 			if [ ! "$src" ]; then
@@ -489,14 +489,15 @@ function syn_parse_plugins() {
 	plugins=""
 	for p in $(compgen -A function syn_plugin_); do
 		if [[ ! $p =~ _help$ ]]; then
-			plugins=$(echo "$plugins ${p//syn_plugin_/ }")
+			#plugins=$(echo "$plugins ${p//syn_plugin_/ }")
+			plugins="$plugins ${p//syn_plugin_/ }"
 		fi
 	done
 }
 
 # Do we need to show the help?
 function syn_check_help_request() {
-	if [ "$#" == 0 ] || [ $cmd == "help" ] || ( [ "$#" == 2 ] && [ "${vars[file]}" ]); then
+	if [ "$#" == 0 ] || [ "$cmd" == "help" ] || ( [ "$#" == 2 ] && [ "${vars[file]}" ]); then
 		syn_cmd_help $src || $dst
 		exit
 	fi
@@ -608,7 +609,7 @@ function syn_cmd_sync() {
 	# Run all the actions exist
 	for x in $(echo -e "${vars[only][@]}" | sed -e 's/,/ /'); do
 		echo -e "\nRunning plugin: $x"
-		syn_plugin_$x
+		eval "syn_plugin_${x}"
 	done
 }
 
@@ -621,18 +622,18 @@ function main() {
 	syn_load_plugins
 	syn_parse_commands
 	syn_parse_plugins
-	syn_parse_parameters $@
+	syn_parse_parameters "$@"
 	syn_load_config_specific
 	syn_parse_environments
 	syn_parse_actions
-	syn_check_help_request $@
+	syn_check_help_request "$@"
 
-	# Do the chosen command
-	syn_cmd_$cmd
+	# Do the chosen command8
+	eval "syn_cmd_${cmd}"
 
 	# Let's get out of here
 	exit
 }
 
 
-main $@
+main "$@"
