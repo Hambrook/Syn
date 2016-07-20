@@ -347,7 +347,7 @@ function syn_cmd_install_help() {
 function syn_load_configs() {
 	config_cnt=0
 	for filename in ".syn.global" ".syn" ".syn.local"; do
-		currpath="$PWD"
+		local currpath="$PWD"
 		while [[ "$currpath" != "/" ]]; do
 			if [[ -r "$currpath/$filename" ]]; then
 				. "$currpath/$filename"
@@ -426,7 +426,7 @@ function syn_load_plugins() {
 function syn_parse_actions() {
 	if [[ "${vars[only]}" == "" ]]; then
 		declare -A tmp
-		pattern="^[^,]+,([^_][^,]+)"
+		local pattern="^[^,]+,([^_][^,]+)"
 		for p in "${!config[@]}"; do
 			if [[ $p =~ $pattern ]]; then
 				: ${tmp[${BASH_REMATCH[1]}]:=${BASH_REMATCH[1]}}
@@ -449,7 +449,7 @@ function syn_parse_commands() {
 # Get configured environment names
 function syn_parse_environments() {
 	environments=""
-	pattern="^[^_][^,]+"
+	local pattern="^[^_][^,]+"
 	for e in "${!config[@]}"; do
 		if [[ $e =~ $pattern ]]; then
 			: ${environments[$BASH_REMATCH]:=$BASH_REMATCH}
@@ -489,7 +489,6 @@ function syn_parse_plugins() {
 	plugins=""
 	for p in $(compgen -A function syn_plugin_); do
 		if [[ ! $p =~ _help$ ]]; then
-			#plugins=$(echo "$plugins ${p//syn_plugin_/ }")
 			plugins="$plugins ${p//syn_plugin_/ }"
 		fi
 	done
