@@ -134,7 +134,7 @@ function syn_error() {
 # Show a prompt for confirmation
 function syn_confirm() {
 	read -p "$* [y/n]: " response
-	if [[ $response =~ "^[Yy].*" ]]; then
+	if [[ $response =~ ^[Yy].* ]]; then
 		return 1
 	fi
 	return 0
@@ -207,7 +207,7 @@ function syn_render_help_vars() {
 # lists of environments and plugins
 function syn_cmd_help() {
 	syn_banner
-	if [ "$1" ]; then
+	if [[ "$1" ]]; then
 		if [[ $(set | grep "syn_plugin_${1}_help ()") ]]; then
 			echo -e "Showing help for plugin: $1\n";
 			eval "syn_plugin_${1}_help"
@@ -265,12 +265,12 @@ function syn_cmd_envs() {
 	local envs=""
 	for e in ${environments[*]}; do
 		envs+="\n  $e"
-		if [ ! "$1" == true ] && [ "${config[$e,_allow]}" == false ]; then
+		if [[ ! "$1" == true && "${config[$e,_allow]}" == false ]]; then
 			envs+=" [read only]"
 		fi
 	done
 	echo -e "Loaded Environments:${envs}"
-	if [ "${envs}" == "" ]; then
+	if [[ ! "${envs}" ]]; then
 		echo "  <none>"
 	fi
 }
@@ -282,8 +282,8 @@ function syn_cmd_envs_help() {
 function syn_cmd_paths() {
 	local tmp_plugin_dir_custom
 	local tmp_default_config_dir
-	if [ "${SYN_PLUGIN_PATH}" ]; then
-		if [ -d "${SYN_PLUGIN_PATH}" ]; then
+	if [[ "${SYN_PLUGIN_PATH}" ]]; then
+		if [[ -d "${SYN_PLUGIN_PATH}" ]]; then
 			tmp_plugin_dir_custom="${SYN_PLUGIN_PATH}"
 		else
 			tmp_plugin_dir_custom="${SYN_PLUGIN_PATH} (DOES NOT EXIST)"
@@ -291,8 +291,8 @@ function syn_cmd_paths() {
 	else
 		tmp_plugin_dir_custom="<not set>"
 	fi
-	if [ "${SYN_DEFAULT_PATH}" ]; then
-		if [ -d "${SYN_DEFAULT_PATH}" ]; then
+	if [[ "${SYN_DEFAULT_PATH}" ]]; then
+		if [[ -d "${SYN_DEFAULT_PATH}" ]]; then
 			tmp_default_config_dir="${SYN_DEFAULT_PATH}"
 		else
 			tmp_default_config_dir="${SYN_DEFAULT_PATH} (DOES NOT EXIST)"
@@ -315,7 +315,7 @@ function syn_cmd_plugins() {
 		plgs+="\n  $p"
 	done
 	echo -e "Loaded Plugins:${plgs}"
-	if [ "${plgs}" == "" ]; then
+	if [[ ! "${plgs}" ]]; then
 		echo "  <none>"
 	fi
 }
@@ -325,10 +325,10 @@ function syn_cmd_plugins_help() {
 
 # Install the thing
 function syn_cmd_install() {
-	if [ -L "${BASH_SOURCE[0]}" ]; then
+	if [[ -L "${BASH_SOURCE[0]}" ]]; then
 		syn_error "Syn is already installed as a SymLink."
 	fi
-	if [ -e "/usr/local/bin/syn" ]; then
+	if [[ -e "/usr/local/bin/syn" ]]; then
 		syn_error "Syn is already installed to your path."
 	fi
 	sudo ln -s "$(readlink -f "$0")" "/usr/local/bin/syn";
@@ -348,11 +348,11 @@ function syn_load_configs() {
 	config_cnt=0
 	for filename in ".syn.global" ".syn" ".syn.local"; do
 		currpath="$PWD"
-		while [ "$currpath" != "/" ]; do
-			if [ -r "$currpath/$filename" ]; then
+		while [[ "$currpath" != "/" ]]; do
+			if [[ -r "$currpath/$filename" ]]; then
 				. "$currpath/$filename"
-				((config_cnt++))
-				if [[ $local_root = "" ]]; then
+				(( config_cnt++ ))
+				if [[ -z "$local_root" ]]; then
 					local_root="$currpath"
 				fi
 			fi
@@ -364,36 +364,36 @@ function syn_load_configs() {
 # Load specific file (from --file parameter)
 function syn_load_config_specific() {
 	local old_count=$config_cnt
-	if [ -d "${default_config_dir}" ] && [ "${vars[file]}" == "." ]; then
+	if [[ -d "${default_config_dir}" && "${vars[file]}" == "." ]]; then
 		# If there is a default location and "." was set as file
 		# then we'll use the current directory name as the filename
 		# and only check the default location for the config file.
 		vars[file]="${default_config_dir}/$(pwd | sed -e 's/.*\///g')"
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
-			if [ -f "$f" ]; then
+			if [[ -f "$f" ]]; then
 				. "$f"
-				((config_cnt++))
+				(( config_cnt++ ))
 			fi
 		done
-	elif [ "${vars[file]}" ]; then
+	elif [[ "${vars[file]}" ]]; then
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
-			if [ -f "$f" ]; then
+			if [[ -f "$f" ]]; then
 				# Otherwise we'll check the current dir for the named file
 				. "$f"
-				((config_cnt++))
+				(( config_cnt++ ))
 			elif [[ -d "${default_config_dir}" && -f "${default_config_dir}/$f" ]]; then
 				# And the default location too
 				. "${default_config_dir}/$f"
-				((config_cnt++))
+				(( config_cnt++ ))
 			fi
 		done
 	fi
 
-	if [ "${vars[file]}" ] && [ "$old_count" == "$config_cnt" ]; then
+	if [[ "${vars[file]}" ]] && (( "$old_count" == "$config_cnt" )); then
 		local err=""
-		if [ ! "${SYN_DEFAULT_PATH}" ]; then
+		if [[ -z "${SYN_DEFAULT_PATH}" ]]; then
 			err=". Also, SYN_DEFAULT_PATH is not set."
-		elif [ ! -d "${SYN_DEFAULT_PATH}" ]; then
+		elif [[ ! -d "${SYN_DEFAULT_PATH}" ]]; then
 			err=". Also, SYN_DEFAULT_PATH (${SYN_DEFAULT_PATH}) is not valid."
 		fi
 		syn_error "Could not find specific config file (${vars[file]})$err"
@@ -403,16 +403,16 @@ function syn_load_config_specific() {
 # Load bundled and external plugins
 function syn_load_plugins() {
 	plugin_cnt=0
-	if [ -d "$plugin_dir_builtin" ]; then
+	if [[ -d "$plugin_dir_builtin" ]]; then
 		for filename in ${plugin_dir_builtin}/*.synPlugin; do
 			. "$filename"
-			((plugin_cnt++))
+			(( plugin_cnt++ ))
 		done
 	fi
-	if [ -d "$plugin_dir_custom" ]; then
+	if [[ -d "$plugin_dir_custom" ]]; then
 		for filename in ${plugin_dir_custom}/*.synPlugin; do
 			. "$filename"
-			((plugin_cnt++))
+			(( plugin_cnt++ ))
 		done
 	fi
 }
@@ -424,7 +424,7 @@ function syn_load_plugins() {
 
 # Show requested actions
 function syn_parse_actions() {
-	if [ "${vars[only]}" == "" ]; then
+	if [[ "${vars[only]}" == "" ]]; then
 		declare -A tmp
 		pattern="^[^,]+,([^_][^,]+)"
 		for p in "${!config[@]}"; do
@@ -460,20 +460,20 @@ function syn_parse_environments() {
 # Parameter loading
 function syn_parse_parameters() {
 	# Tried a switch statement, this more efficient
-	for ((i=1; i<=$#; i++)); do
+	for (( i=1; i<=$#; i++ )); do
 		if [[ ${!i} =~ ^\-\-(.*) ]]; then
 			if array_key_exists "${BASH_REMATCH[1]}" flags; then
 				flags[${BASH_REMATCH[1]}]=true
 			elif array_key_exists "${BASH_REMATCH[1]}" vars; then
-				((i++))
+				(( i++ ))
 				vars[${BASH_REMATCH[1]}]="${!i}"
 			elif array_key_exists "${BASH_REMATCH[1]}" commands; then
 				cmd="${BASH_REMATCH[1]}"
 			fi
 		elif [[ ! ${!i} =~ ^- ]]; then
-			if [ ! "$src" ]; then
+			if [[ ! "$src" ]]; then
 				src="${!i}"
-			elif [ ! "$dst" ]; then
+			elif [[ ! "$dst" ]]; then
 				dst="${!i}"
 			else
 				syn_error "Unrecognised parameter '${!i}'"
@@ -497,7 +497,7 @@ function syn_parse_plugins() {
 
 # Do we need to show the help?
 function syn_check_help_request() {
-	if [ "$#" == 0 ] || [ "$cmd" == "help" ] || ( [ "$#" == 2 ] && [ "${vars[file]}" ]); then
+	if [[ "$#" == 0 || "$cmd" == "help" || ( "$#" == 2 && "${vars[file]}" ) ]]; then
 		syn_cmd_help $src || $dst
 		exit
 	fi
@@ -512,7 +512,7 @@ function syn_check_help_request() {
 function syn_validate_allow() {
 	# Check if we're pushing to a live environment
 	local to=$dst || $src
-	if [[ $to =~ (live|prod) ]] || [ "${config[$to,_allow]}" == "warn" ]; then
+	if [[ $to =~ (live|prod) || "${config[$to,_allow]}" == "warn" ]]; then
 		if syn_confirm "Pushing to this environment could be dangerous, are you sure?"; then
 			echo "Aborting"
 			exit
@@ -521,7 +521,7 @@ function syn_validate_allow() {
 	fi
 
 	# Check if we're pushing to a disallowed environment
-	if [ "${config[$to,_allow]}" == false ]; then
+	if [[ "${config[$to,_allow]}" == false ]]; then
 		syn_error "Pushing to this environment is not allowed"
 		exit
 	fi
@@ -530,11 +530,11 @@ function syn_validate_allow() {
 # Require one environment
 function syn_validate_require_one_env() {
 	# Is the environment set?
-	if [ ! "$src" ]; then
+	if [[ ! "$src" ]]; then
 		syn_error "You must specify an environment"
 	fi
 	# Is the environment valid?
-	if [ ! "${environments[$src]}" ]; then
+	if [[ ! "${environments[$src]}" ]]; then
 		syn_error "Environment '$src' doesn't exist"
 	fi
 }
@@ -542,18 +542,18 @@ function syn_validate_require_one_env() {
 # Require two environments
 function syn_validate_require_two_envs() {
 	# Are both environments set?
-	if [ ! "$src" ] || [ ! "$dst" ]; then
+	if [[ ! ( "$src" && "$dst" ) ]]; then
 		syn_error "You must specify two environments"
 	fi
 	# Is the src environment valid?
-	if [ ! "${environments[$src]}" ]; then
+	if [[ ! "${environments[$src]}" ]]; then
 		syn_error "Source environment '$src' doesn't exist"
 	fi
 	# Is the dst environment valid?
-	if [ ! "${environments[$dst]}" ]; then
+	if [[ ! "${environments[$dst]}" ]]; then
 		syn_error "Destination environment '$dst' doesn't exist"
 	fi
-	if [ "$src" == "$dst" ]; then
+	if [[ "$src" == "$dst" ]]; then
 		syn_error "Souce and destination environments cannot be the same"
 	fi
 }
@@ -585,7 +585,7 @@ function syn_banner() {
 # Do the actual synchronising
 function syn_cmd_sync() {
 	# Check if we have any configs set
-	if [ $config_cnt == 0 ]; then
+	if (( $config_cnt == 0 )); then
 		syn_error "No config files were found"
 	fi
 

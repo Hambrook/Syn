@@ -14,7 +14,7 @@ config[_mysql_ssh]=""
 # Plugin: MySQL
 function syn_plugin_mysql() {
 	# Require two db names
-	if [ ! "${config[$src,mysql,name]}" ] || [ ! "${config[$dst,mysql,name]}" ]; then
+	if [[ ! ( "${config[$src,mysql,name]}" && "${config[$dst,mysql,name]}" ) ]]; then
 		syn_error "There must be DB names for both evironments"
 	fi
 
@@ -40,7 +40,7 @@ function syn_plugin_mysql() {
 	: ${config[$dst,mysql,_docker]:=${config[_mysql_docker]}}
 
 	local db_actions="initial"
-	if [ "${config[$src,mysql,stru]}" ]; then
+	if [[ "${config[$src,mysql,stru]}" ]]; then
 		db_actions="$db_actions structure"
 	fi
 
@@ -49,7 +49,7 @@ function syn_plugin_mysql() {
 		# Build out the skipped tables
 		local skip=""
 		local tables=""
-		if [ $action == "initial" ]; then
+		if [[ $action == "initial" ]]; then
 			for table in ${config[$src,mysql,only]}; do
 				skip+=" $table"
 			done
@@ -76,12 +76,12 @@ function syn_plugin_mysql() {
 		"
 
 		# Should src be sent to a docker container?
-		if [ "${config[$src,mysql,_docker]}" ]; then
+		if [[ "${config[$src,mysql,_docker]}" ]]; then
 			cmdSrc=$(syn_docker_wrap "${config[$src,mysql,_docker]}" "$cmdSrc")
 		fi
 
 		# Should src be over SSH?
-		if [ "${config[$src,mysql,_ssh]}" ]; then
+		if [[ "${config[$src,mysql,_ssh]}" ]]; then
 			cmdSrc=$(syn_ssh_wrap "${config[$src,mysql,_ssh]}" "$cmdSrc")
 		fi
 
@@ -95,12 +95,12 @@ function syn_plugin_mysql() {
 		"
 
 		# Should dst be sent to a docker container?
-		if [ "${config[$dst,mysql,_docker]}" ]; then
+		if [[ "${config[$dst,mysql,_docker]}" ]]; then
 			cmdDst=$(syn_docker_wrap "${config[$dst,mysql,_docker]}" "$cmdDst" "-i")
 		fi
 
 		# Should dst be over SSH?
-		if [ "${config[$dst,mysql,_ssh]}" ]; then
+		if [[ "${config[$dst,mysql,_ssh]}" ]]; then
 			cmdDst=$(syn_ssh_wrap "${config[$dst,mysql,_ssh]}" "$cmdDst")
 		fi
 

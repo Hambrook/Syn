@@ -18,32 +18,32 @@ function syn_plugin_rsync() {
 	# Source
 	local cnt=0
 	for file in ${config[$src,rsync,dirs]}; do
-		((cnt++))
+		(( cnt++ ))
 		local pathinfo=(${file//=/ })
-		if [ "${pathinfo[1]}" ]; then
+		if [[ "${pathinfo[1]}" ]]; then
 			src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
 		else
 			src_paths["$cnt"]="${pathinfo[0]}"
 		fi
 	done
 	local src_ssh=""
-	if [ "${config[$src,rsync,_ssh]}" ]; then
+	if [[ "${config[$src,rsync,_ssh]}" ]]; then
 		src_ssh="${config[$src,rsync,_ssh]}:"
 	fi
 
 	# Destination
 	cnt=0
 	for file in ${config[$dst,rsync,dirs]}; do
-		((cnt++))
+		(( cnt++ ))
 		local pathinfo=(${file//=/ })
-		if [ "${pathinfo[1]}" ]; then
+		if [[ "${pathinfo[1]}" ]]; then
 			dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
 		else
 			dst_paths["$cnt"]="${pathinfo[0]}"
 		fi
 	done
 	local dst_ssh=""
-	if [ "${config[$dst,rsync,_ssh]}" ]; then
+	if [[ "${config[$dst,rsync,_ssh]}" ]]; then
 		dst_ssh="${config[$dst,rsync,_ssh]}:"
 		src_ssh="" # Can't use two remotes
 	fi
@@ -51,11 +51,11 @@ function syn_plugin_rsync() {
 	# Loop it and create the commands
 
 	for i in "${!src_paths[@]}"; do
-		if [ "${dst_paths[$i]}" ]; then
+		if [[ "${dst_paths[$i]}" ]]; then
 			local pattern="^(~|/|./|../)"
 			local src_path="$(echo -e "${src_paths[$i]}" | sed -e 's/\*$//')"
 			if [[ ( ( "${config[$src,rsync,root]}" ) || ( $local_root && ! "${config[$src,rsync,_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
-				if [ "${config[$src,rsync,root]}" ]; then
+				if [[ "${config[$src,rsync,root]}" ]]; then
 					src_path="${config[$src,rsync,root]}/$src_path"
 				else
 					src_path="$local_root/$src_path"
@@ -63,7 +63,7 @@ function syn_plugin_rsync() {
 			fi
 			local dst_path="$(echo -e "${dst_paths[$i]}" | sed -e 's/\*$//')"
 			if [[ ( ( "${config[$dst,rsync,root]}" ) || ( $local_root && ! "${config[$dst,rsync,_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
-				if [ "${config[$dst,rsync,root]}" ]; then
+				if [[ "${config[$dst,rsync,root]}" ]]; then
 					dst_path="${config[$dst,rsync,root]}/$dst_path"
 				else
 					dst_path="$local_root/$dst_path"
@@ -72,12 +72,12 @@ function syn_plugin_rsync() {
 
 			# Are we routing through an SSH tunnel?
 			local tunnel=""
-			if [ "${config[$src,rsync,_tunnel]}" ] && [ "${config[$dst,rsync,_tunnel]}" ]; then
+			if [[ "${config[$src,rsync,_tunnel]}" && "${config[$dst,rsync,_tunnel]}" ]]; then
 				syn_error "Sorry, you can't use _tunnel for both source and destination."
 			fi
-			if [ "${config[$src,rsync,_tunnel]}" ]; then
+			if [[ "${config[$src,rsync,_tunnel]}" ]]; then
 				tunnel="-e 'ssh -A ${config[$src,rsync,_tunnel]} ssh'"
-			elif [ "${config[$dst,rsync,_tunnel]}" ]; then
+			elif [[ "${config[$dst,rsync,_tunnel]}" ]]; then
 				tunnel="-e 'ssh -A ${config[$dst,rsync,_tunnel]} ssh'"
 			fi
 
@@ -89,7 +89,7 @@ function syn_plugin_rsync() {
 			"
 
 			# Should src be over SSH?
-			if [ "${config[$src,rsync,_ssh]}" ] && [ "${config[$dst,rsync,_ssh]}" ]; then
+			if [[ "${config[$src,rsync,_ssh]}" && "${config[$dst,rsync,_ssh]}" ]]; then
 				rsync_cmd=$(syn_ssh_wrap "${config[$src,rsync,_ssh]}" "$rsync_cmd")
 			fi
 			if ${flags[dryrun]}; then
