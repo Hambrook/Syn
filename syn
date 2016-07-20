@@ -109,18 +109,18 @@ declare -A vars_help=(
 # Initialise a few paths etc
 function syn_init() {
 	real_path="${exec_path}"
-	if [ -L "${exec_path}" ]; then
+	if [[ -L "${exec_path}" ]]; then
 		real_path="$(readlink "${exec_path}")"
 	fi
 	real_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
 
 	plugin_dir_builtin="${real_dir}/plugins"
 
-	if [ "${SYN_PLUGIN_PATH}" ] && [ -d "${SYN_PLUGIN_PATH}" ]; then
+	if [[ "${SYN_PLUGIN_PATH}" && -d "${SYN_PLUGIN_PATH}" ]]; then
 		plugin_dir_custom="${SYN_PLUGIN_PATH}"
 	fi
 
-	if [ "${SYN_DEFAULT_PATH}" ] && [ -d "${SYN_DEFAULT_PATH}" ]; then
+	if [[ "${SYN_DEFAULT_PATH}" && -d "${SYN_DEFAULT_PATH}" ]]; then
 		default_config_dir="${SYN_DEFAULT_PATH}"
 	fi
 }
@@ -134,7 +134,7 @@ function syn_error() {
 # Show a prompt for confirmation
 function syn_confirm() {
 	read -p "$* [y/n]: " response
-	if [[ $response =~ ^[Yy].* ]]; then
+	if [[ $response =~ "^[Yy].*" ]]; then
 		return 1
 	fi
 	return 0
@@ -347,7 +347,7 @@ function syn_cmd_install_help() {
 function syn_load_configs() {
 	config_cnt=0
 	for filename in ".syn.global" ".syn" ".syn.local"; do
-		currpath="$(pwd)"
+		currpath="$PWD"
 		while [ "$currpath" != "/" ]; do
 			if [ -r "$currpath/$filename" ]; then
 				. "$currpath/$filename"
@@ -356,7 +356,7 @@ function syn_load_configs() {
 					local_root="$currpath"
 				fi
 			fi
-			currpath="$(cd "$currpath" ; cd .. ; pwd)"
+			currpath=$(cd "$currpath/.." && pwd) || syn_error "Invalid path"
 		done
 	done
 }
