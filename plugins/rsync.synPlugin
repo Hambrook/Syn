@@ -1,5 +1,5 @@
 # rsync plugin defaults
-config[_rsync_flags]="-aclruv" #archive, checksum, symlinks as symlinks, recursive, skip newer files, verbose
+config[_rsync_flags]="-aclruv --progress" #archive, checksum, symlinks as symlinks, recursive, skip newer files, verbose
 config[_rsync_docker]=""
 config[_rsync_ssh]=""
 config[_rsync_dirs]=""
