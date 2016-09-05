@@ -117,7 +117,7 @@ function syn_plugin_mysql() {
 
 # Help: MySQL
 function syn_plugin_mysql_help() {
-	echo "Copy a database from one location to another
+	printf "Copy a database from one location to another
 
 --------------------------------------------------------------------------------
 

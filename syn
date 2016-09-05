@@ -576,6 +576,7 @@ function syn_banner() {
   |_____/ \__, |_| |_|
            __/ |         Website: %s
           |___/
+
 " "$_SYN_VERSION" "$_SYN_AUTHOR" "$_SYN_WEBSITE"
 }
 

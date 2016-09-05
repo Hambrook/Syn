@@ -53,7 +53,7 @@ function syn_plugin_rsync() {
 	for i in "${!src_paths[@]}"; do
 		if [[ "${dst_paths[$i]}" ]]; then
 			local pattern="^(~|/|./|../)"
-			local src_path="$(echo -e "${src_paths[$i]}" | sed -e 's/\*$//')"
+			local src_path="$(printf "${src_paths[$i]}" | sed -e 's/\*$//')"
 			if [[ ( ( "${config[$src,rsync,root]}" ) || ( $local_root && ! "${config[$src,rsync,_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
 				if [[ "${config[$src,rsync,root]}" ]]; then
 					src_path="${config[$src,rsync,root]}/$src_path"
@@ -61,7 +61,7 @@ function syn_plugin_rsync() {
 					src_path="$local_root/$src_path"
 				fi
 			fi
-			local dst_path="$(echo -e "${dst_paths[$i]}" | sed -e 's/\*$//')"
+			local dst_path="$(printf "${dst_paths[$i]}" | sed -e 's/\*$//')"
 			if [[ ( ( "${config[$dst,rsync,root]}" ) || ( $local_root && ! "${config[$dst,rsync,_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
 				if [[ "${config[$dst,rsync,root]}" ]]; then
 					dst_path="${config[$dst,rsync,root]}/$dst_path"
@@ -93,7 +93,7 @@ function syn_plugin_rsync() {
 				rsync_cmd=$(syn_ssh_wrap "${config[$src,rsync,_ssh]}" "$rsync_cmd")
 			fi
 			if ${flags[dryrun]}; then
-				echo $rsync_cmd
+				printf "%s\n" "$rsync_cmd"
 			else
 				eval $rsync_cmd
 			fi
@@ -104,7 +104,7 @@ function syn_plugin_rsync() {
 
 # Help: RSYNC
 function syn_plugin_rsync_help() {
-	echo "Synchronise files from one location to another using rsync
+	printf "Synchronise files from one location to another using rsync
 
 Uses a new-line separated list, with key/values separated by '='. Note no trailing slash.
 
