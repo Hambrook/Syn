@@ -127,7 +127,7 @@ function syn_init() {
 
 # Exit with an error and a non-successful exit code
 function syn_error() {
-	echo "Error: ${1:-"An unknown error has occured"}" 1>&2
+	printf "Error: %s\n" "${1:-"An unknown error has occured"}" 1>&2
 	exit 1
 }
 
@@ -166,7 +166,7 @@ function array_key_exists() {
 function syn_ssh_wrap() {
 	# $1 = SSH string
 	# $2 = command
-	echo "ssh $1 $2"
+	printf "ssh %s %s" "$1" "$2"
 }
 
 # Wrap Docker commands
@@ -174,7 +174,7 @@ function syn_docker_wrap() {
 	# $1 = docker container
 	# $2 = command
 	# $3 = additional flags
-	echo "docker exec $3 $1 $2"
+	printf "docker exec %s %s %s" "$3" "$1" "$2"
 }
 
 
@@ -183,23 +183,23 @@ function syn_docker_wrap() {
 ################################################################################
 
 function syn_render_help_commands() {
-	echo "Commands:"
+	printf "Commands:\n"
 	for c in ${!commands[*]}; do
-		echo -e "                    $(${commands[$c]})\r  --$c"
+		printf "  --%-15s %s\n" "$c" "$(${commands[$c]})"
 	done
 }
 
 function syn_render_help_flags() {
-	echo "Flags:"
+	printf "Flags:\n"
 	for f in ${!flags_help[*]}; do
-		echo -e "                    ${flags_help[$f]}\r  --$f"
+		printf "  --%-15s %s\n" "$f" "${flags_help[$f]}"
 	done
 }
 
 function syn_render_help_vars() {
-	echo "Vars:"
+	printf "Vars:\n"
 	for v in ${!vars_help[*]}; do
-		echo -e "                    ${vars_help[$v]}\r  --$v"
+		printf "  --%-15s %s\n" "$v" "${vars_help[$v]}"
 	done
 }
 
@@ -209,7 +209,7 @@ function syn_cmd_help() {
 	syn_banner
 	if [[ "$1" ]]; then
 		if [[ $(set | grep "syn_plugin_${1}_help ()") ]]; then
-			echo -e "Showing help for plugin: $1\n";
+			printf "Showing help for plugin: %s\n" "$1"
 			eval "syn_plugin_${1}_help"
 			exit
 		else
@@ -217,7 +217,7 @@ function syn_cmd_help() {
 		fi
 	fi
 
-	echo -e "
+	printf "
 A pluggable system to synchronise between environments with builtin plugins
 for mysql and rsync.
 
@@ -244,7 +244,7 @@ $(syn_cmd_paths)
 	exit
 }
 function syn_cmd_help_help() {
-	echo "Show this help (or append a plugin name for specific help)"
+	printf "Show this help (or append a plugin name for specific help)"
 }
 
 # Show actions
@@ -253,10 +253,13 @@ function syn_cmd_actions() {
 	for a in ${vars[only]}; do
 		actions+="\n  $a"
 	done
-	echo -e "Proposed actions for this sync:${actions}"
+	if [[ ! "${actions}" ]]; then
+		actions="\n  <none>"
+	fi
+	printf "Proposed actions for this sync:%s\n" "${actions}"
 }
 function syn_cmd_actions_help() {
-	echo "Show the actions that are configured for a src, dst, or both"
+	printf "Show the actions that are configured for a src, dst, or both"
 }
 
 # Show environments
@@ -269,13 +272,13 @@ function syn_cmd_envs() {
 			envs+=" [read only]"
 		fi
 	done
-	echo -e "Loaded Environments:${envs}"
 	if [[ ! "${envs}" ]]; then
-		echo "  <none>"
+		envs="\n  <none>"
 	fi
+	printf "Loaded Environments:%s\n" "${envs}"
 }
 function syn_cmd_envs_help() {
-	echo "List available environments"
+	printf "List available environments"
 }
 
 # Show paths
@@ -300,12 +303,12 @@ function syn_cmd_paths() {
 	else
 		tmp_default_config_dir="<not set>"
 	fi
-	echo "Custom Paths:"
-	echo "  SYN_PLUGIN_PATH: ${tmp_plugin_dir_custom}"
-	echo "  SYN_DEFAULT_PATH: ${tmp_default_config_dir}"
+	printf "Custom Paths:\n"
+	printf "  SYN_PLUGIN_PATH: %s\n" "${tmp_plugin_dir_custom}"
+	printf "  SYN_DEFAULT_PATH: %s\n" "${tmp_default_config_dir}"
 }
 function syn_cmd_paths_help() {
-	echo "List configured paths"
+	printf "List configured paths"
 }
 
 # Show plugins
@@ -314,13 +317,13 @@ function syn_cmd_plugins() {
 	for p in ${plugins[*]}; do
 		plgs+="\n  $p"
 	done
-	echo -e "Loaded Plugins:${plgs}"
 	if [[ ! "${plgs}" ]]; then
-		echo "  <none>"
+		plgs="\n  <none>"
 	fi
+	printf "Loaded Plugins:%s\n" "${plgs}"
 }
 function syn_cmd_plugins_help() {
-	echo "List all available plugins"
+	printf "List all available plugins"
 }
 
 # Install the thing
@@ -331,11 +334,11 @@ function syn_cmd_install() {
 	if [[ -e "/usr/local/bin/syn" ]]; then
 		syn_error "Syn is already installed to your path."
 	fi
-	sudo ln -s "$(readlink -f "$0")" "/usr/local/bin/syn";
-	echo "You can now run this script simply by typing 'syn'"
+	sudo ln -s "$(readlink -f "$0")" "/usr/local/bin/syn"
+	printf "You can now run this script simply by typing 'syn'\n"
 }
 function syn_cmd_install_help() {
-	echo "Installs Syn to your executable path for ease-of-use";
+	printf "Installs Syn to your executable path for ease-of-use\n"
 }
 
 
@@ -513,10 +516,10 @@ function syn_validate_allow() {
 	local to=$dst || $src
 	if [[ $to =~ (live|prod) || "${config[$to,_allow]}" == "warn" ]]; then
 		if syn_confirm "Pushing to this environment could be dangerous, are you sure?"; then
-			echo "Aborting"
+			printf "Aborting\n"
 			exit
 		fi
-		echo
+		printf "\n"
 	fi
 
 	# Check if we're pushing to a disallowed environment
@@ -564,16 +567,16 @@ function syn_validate_require_two_envs() {
 
 # The banner
 function syn_banner() {
-	echo -e "
+	printf "
     _____
    / ____|
-  | (___  _   _ _ __     Version: v$_SYN_VERSION
+  | (___  _   _ _ __     Version: v%s
    \___ \| | | | '_ \ 
-   ____) | |_| | | | |   Author:  $_SYN_AUTHOR
+   ____) | |_| | | | |   Author:  %s
   |_____/ \__, |_| |_|
-           __/ |         Website: $_SYN_WEBSITE
+           __/ |         Website: %s
           |___/
-"
+" "$_SYN_VERSION" "$_SYN_AUTHOR" "$_SYN_WEBSITE"
 }
 
 
@@ -593,21 +596,21 @@ function syn_cmd_sync() {
 	syn_validate_allow
 
 	# Show a summary
-	echo "Proceeding to sync $(echo -e "${vars[only][@]}" | sed -e 's/,/, /') from $src to $dst"
+	printf "Proceeding to sync %s from %s to %s\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
 	if ${flags[dryrun]}; then
-		echo -e "\n[DRYRUN]"
+		printf "\n[DRYRUN]\n"
 	fi
 
 	# Check that all the actions exist
-	for x in $(echo -e "${vars[only][@]}" | sed -e 's/,/ /'); do
+	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
 		if [[ ! $(set | grep "syn_plugin_$x ()") ]]; then
 			syn_error "Plugin '$x' not found"
 		fi
 	done
 
 	# Run all the actions exist
-	for x in $(echo -e "${vars[only][@]}" | sed -e 's/,/ /'); do
-		echo -e "\nRunning plugin: $x"
+	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
+		printf "\nRunning plugin: %s\n" "$x"
 		eval "syn_plugin_${x}"
 	done
 }
