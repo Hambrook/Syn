@@ -133,9 +133,30 @@ function syn_error() {
 
 # Show a prompt for confirmation
 function syn_confirm() {
-	read -p "$* [y/n]: " response
+	# $1 = Confirmation message
+	# $2 = default (y/true/n/false)
+
+	case $2 in
+		1|y|Y|true)
+			prompt="Y/n"
+			default=1
+			;;
+		0|n|N|false)
+			prompt="y/N"
+			default=0
+			;;
+		*) 
+			prompt="y/n"
+			default=0
+			;;
+	esac
+
+	read -p "$1 [$prompt]: " response
 	if [[ $response =~ ^[Yy].* ]]; then
 		return 1
+	fi
+	if [[ $response = "" ]]; then
+		return $default
 	fi
 	return 0
 }
@@ -515,13 +536,13 @@ function syn_validate_allow() {
 	# Check if we're pushing to a live environment
 	local to=$dst || $src
 	if [[ $to =~ (live|prod) || "${config[$to,_allow]}" == "warn" ]]; then
-		if syn_confirm "Pushing to this environment could be dangerous, are you sure?"; then
+		if syn_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
 			printf "Aborting\n"
 			exit
 		fi
 		printf "\n"
 	fi
-
+exit
 	# Check if we're pushing to a disallowed environment
 	if [[ "${config[$to,_allow]}" == false ]]; then
 		syn_error "Pushing to this environment is not allowed"
