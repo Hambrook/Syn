@@ -106,9 +106,9 @@ function syn_plugin_mysql() {
 
 		# Finish up
 		if ${flags[dryrun]}; then
-			echo -e "$cmdSrc | $cmdDst"
+			printf "%s | %s" "$cmdSrc" "$cmdDst"
 		else
-			$cmdSrc | $cmdDst
+			eval $cmdSrc | $cmdDst
 		fi
 
 	done
