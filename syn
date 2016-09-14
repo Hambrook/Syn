@@ -230,7 +230,7 @@ function syn_cmd_help() {
 	syn_banner
 	if [[ "$1" ]]; then
 		if [[ $(set | grep "syn_plugin_${1}_help ()") ]]; then
-			printf "Showing help for plugin: %s\n" "$1"
+			printf "Showing help for plugin: %s\n\n" "$1"
 			eval "syn_plugin_${1}_help"
 			exit
 		else
@@ -485,15 +485,26 @@ function syn_parse_environments() {
 function syn_parse_parameters() {
 	# Tried a switch statement, this more efficient
 	for (( i=1; i<=$#; i++ )); do
+		# Strip leading dashes and test for flags, commands and vars
 		if [[ ${!i} =~ ^\-\-(.*) ]]; then
+			# Is it a flag, eg "--dryrun"?
 			if array_key_exists "${BASH_REMATCH[1]}" flags; then
 				flags[${BASH_REMATCH[1]}]=true
+			# Is it a command, eg "--help"?
+			elif array_key_exists "${BASH_REMATCH[1]}" commands; then
+				cmd="${BASH_REMATCH[1]}"
+			# Is it a space-separated var, eg "--only rsync"?
 			elif array_key_exists "${BASH_REMATCH[1]}" vars; then
 				(( i++ ))
 				vars[${BASH_REMATCH[1]}]="${!i}"
-			elif array_key_exists "${BASH_REMATCH[1]}" commands; then
-				cmd="${BASH_REMATCH[1]}"
+			# Or even an equals separated var, eg "--only=rsync"?
+			elif [[ "${BASH_REMATCH[1]}" == *"="* ]]; then
+				local varinfo=(${BASH_REMATCH[1]//=/ })
+				if array_key_exists "${varinfo[0]}" vars; then
+					vars[${varinfo[0]}]="${varinfo[1]}"
+				fi
 			fi
+		# If there are no leading dashes then it must be an environment
 		elif [[ ! ${!i} =~ ^- ]]; then
 			if [[ ! "$src" ]]; then
 				src="${!i}"
