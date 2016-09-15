@@ -79,6 +79,7 @@ declare real_dir
 declare plugin_dir_builtin
 declare plugin_dir_custom
 declare default_config_dir
+declare colour_enabled=true
 
 # Default settings for plugins to extend
 declare -A config
@@ -159,27 +160,29 @@ declare -A formatting=(
 	[bg_white]=107
 )
 
+
+################################################################################
+# MISC HELPERS
+################################################################################
+
 # Get a formatting string
 function _() {
-	if [[ ! $# ]]; then
+	if [[ ! $# || $colour_enabled == false ]]; then
 		return
 	fi
 
 	output=""
 	for var in "$@"; do
-		if [[ $output != "" ]]; then
-			output="${output};"
+		if array_key_exists $var formatting; then
+			if [[ $output != "" ]]; then
+				output="${output};"
+			fi
+			output="${output}${formatting[${var}]}"
 		fi
-		output="${output}${formatting[${var}]}"
 	done
 
 	printf "\e[${output}m"
 }
-
-
-################################################################################
-# MISC HELPERS
-################################################################################
 
 # Initialise a few paths etc
 function syn_init() {
