@@ -205,7 +205,7 @@ function syn_init() {
 
 # Exit with an error and a non-successful exit code
 function syn_error() {
-	printf "Error: %s\n" "${1:-"An unknown error has occured"}" 1>&2
+	printf "$(_ red)Error: %s\n" "${1:-"An unknown error has occured"}$(_ reset)" 1>&2
 	exit 1
 }
 
@@ -282,21 +282,21 @@ function syn_docker_wrap() {
 ################################################################################
 
 function syn_render_help_commands() {
-	printf "Commands:\n"
+	printf "$(_ bold)Commands:$(_ r_bold)\n"
 	for c in ${!commands[*]}; do
 		printf "  --%-15s %s\n" "$c" "$(${commands[$c]})"
 	done
 }
 
 function syn_render_help_flags() {
-	printf "Flags:\n"
+	printf "$(_ bold)Flags:$(_ r_bold)\n"
 	for f in ${!flags_help[*]}; do
 		printf "  --%-15s %s\n" "$f" "${flags_help[$f]}"
 	done
 }
 
 function syn_render_help_vars() {
-	printf "Vars:\n"
+	printf "$(_ bold)Vars:$(_ r_bold)\n"
 	for v in ${!vars_help[*]}; do
 		printf "  --%-15s %s\n" "$v" "${vars_help[$v]}"
 	done
@@ -322,7 +322,7 @@ for mysql and rsync.
 
 Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]
 
-Parameters:
+$(_ bold)Parameters:$(_ r_bold)
   SRC               Must match an environment from the loaded config files
   DST               Must match an environment from the loaded config files
 
@@ -374,7 +374,7 @@ function syn_cmd_envs() {
 	if [[ ! "${envs}" ]]; then
 		envs="\n  <none>"
 	fi
-	printf "Loaded Environments:%s\n" "${envs}"
+	printf "$(_ bold)Loaded Environments:$(_ r_bold)%s\n" "${envs}"
 }
 function syn_cmd_envs_help() {
 	printf "List available environments"
@@ -402,7 +402,7 @@ function syn_cmd_paths() {
 	else
 		tmp_default_config_dir="<not set>"
 	fi
-	printf "Custom Paths:\n"
+	printf "$(_ bold)Custom Paths:$(_ r_bold)\n"
 	printf "  SYN_PLUGIN_PATH: %s\n" "${tmp_plugin_dir_custom}"
 	printf "  SYN_DEFAULT_PATH: %s\n" "${tmp_default_config_dir}"
 }
@@ -419,7 +419,7 @@ function syn_cmd_plugins() {
 	if [[ ! "${plgs}" ]]; then
 		plgs="\n  <none>"
 	fi
-	printf "Loaded Plugins:%s\n" "${plgs}"
+	printf "$(_ bold)Loaded Plugins:$(_ r_bold)%s\n" "${plgs}"
 }
 function syn_cmd_plugins_help() {
 	printf "List all available plugins"
@@ -677,17 +677,17 @@ function syn_validate_require_two_envs() {
 
 # The banner
 function syn_banner() {
-	printf "
+	printf "$(_ lightgreen bold)
     _____
    / ____|
-  | (___  _   _ _ __     Version: v%s
+  | (___  _   _ _ __     $(_ green r_bold)Version: v%s$(_ lightgreen bold)
    \___ \| | | | '_ \ 
-   ____) | |_| | | | |   Author:  %s
+   ____) | |_| | | | |   $(_ green r_bold)Author:  %s$(_ lightgreen bold)
   |_____/ \__, |_| |_|
-           __/ |         Website: %s
+           __/ |         $(_ green r_bold)Website: %s$(_ lightgreen bold)
           |___/
 
-" "$_SYN_VERSION" "$_SYN_AUTHOR" "$_SYN_WEBSITE"
+$(_ reset)" "$_SYN_VERSION" "$_SYN_AUTHOR" "$_SYN_WEBSITE"
 }
 
 
