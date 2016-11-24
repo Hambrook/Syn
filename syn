@@ -631,7 +631,7 @@ function syn_validate_allow() {
 		fi
 		printf "\n"
 	fi
-exit
+
 	# Check if we're pushing to a disallowed environment
 	if [[ "${config[$to,_allow]}" == false ]]; then
 		syn_error "Pushing to this environment is not allowed"
