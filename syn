@@ -6,7 +6,7 @@
 #
 # @version    0.2
 # @author     Rick Hambrook <rick@rickhambrook.com>
-# @copyright  Copyright (c) 2016, Rick Hambrook
+# @copyright  Copyright (c) 2016 Rick Hambrook
 # @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
 
 
@@ -367,7 +367,7 @@ function syn_cmd_envs() {
 	local envs=""
 	for e in ${environments[*]}; do
 		envs+="\n  $e"
-		if [[ ! "$1" == true && "${config[$e,_allow]}" == false ]]; then
+		if [[ ! "$1" == true && "${config[$e/_allow]}" == false ]]; then
 			envs+=" [read only]"
 		fi
 	done
@@ -528,7 +528,7 @@ function syn_load_plugins() {
 function syn_parse_actions() {
 	if [[ "${vars[only]}" == "" ]]; then
 		declare -A tmp
-		local pattern="^[^,]+,([^_][^,]+)"
+		local pattern="^[^/]+/([^_][^/]+)"
 		for p in "${!config[@]}"; do
 			if [[ $p =~ $pattern ]]; then
 				: ${tmp[${BASH_REMATCH[1]}]:=${BASH_REMATCH[1]}}
@@ -551,7 +551,7 @@ function syn_parse_commands() {
 # Get configured environment names
 function syn_parse_environments() {
 	environments=""
-	local pattern="^[^_][^,]+"
+	local pattern="^[^_][^/]+"
 	for e in "${!config[@]}"; do
 		if [[ $e =~ $pattern ]]; then
 			: ${environments[$BASH_REMATCH]:=$BASH_REMATCH}
@@ -624,7 +624,7 @@ function syn_check_help_request() {
 function syn_validate_allow() {
 	# Check if we're pushing to a live environment
 	local to=$dst || $src
-	if [[ $to =~ (live|prod) || "${config[$to,_allow]}" == "warn" ]]; then
+	if [[ $to =~ (live|prod) || "${config[$to/_allow]}" == "warn" ]]; then
 		if syn_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
 			printf "Aborting\n"
 			exit
@@ -633,7 +633,7 @@ function syn_validate_allow() {
 	fi
 
 	# Check if we're pushing to a disallowed environment
-	if [[ "${config[$to,_allow]}" == false ]]; then
+	if [[ "${config[$to/_allow]}" == false ]]; then
 		syn_error "Pushing to this environment is not allowed"
 		exit
 	fi

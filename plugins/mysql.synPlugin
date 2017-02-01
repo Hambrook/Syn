@@ -14,33 +14,33 @@ config[_mysql_ssh]=""
 # Plugin: MySQL
 function syn_plugin_mysql() {
 	# Require two db names
-	if [[ ! ( "${config[$src,mysql,name]}" && "${config[$dst,mysql,name]}" ) ]]; then
+	if [[ ! ( "${config[$src/mysql/name]}" && "${config[$dst/mysql/name]}" ) ]]; then
 		syn_error "There must be DB names for both evironments"
 	fi
 
 	# Defaults
-	: ${config[$src,mysql,dump]:=${config[_mysql_dump]}}
-	: ${config[$src,mysql,host]:=${config[_mysql_host]}}
-	: ${config[$src,mysql,user]:=${config[_mysql_user]}}
-	: ${config[$src,mysql,pass]:=${config[_mysql_pass]}}
-	: ${config[$src,mysql,port]:=${config[_mysql_port]}}
-	: ${config[$src,mysql,_ssh]:=${config[_mysql_ssh]}}
-	: ${config[$src,mysql,_docker]:=${config[_mysql_docker]}}
-	: ${config[$src,mysql,only]:=${config[_mysql_only]}}
-	: ${config[$src,mysql,skip]:=${config[_mysql_skip]}}
-	: ${config[$src,mysql,stru]:=${config[_mysql_stru]}}
-	: ${config[$src,mysql,flags]:=${config[_mysql_flags]}}
+	: ${config[$src/mysql/dump]:=${config[_mysql_dump]}}
+	: ${config[$src/mysql/host]:=${config[_mysql_host]}}
+	: ${config[$src/mysql/user]:=${config[_mysql_user]}}
+	: ${config[$src/mysql/pass]:=${config[_mysql_pass]}}
+	: ${config[$src/mysql/port]:=${config[_mysql_port]}}
+	: ${config[$src/mysql/_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$src/mysql/_docker]:=${config[_mysql_docker]}}
+	: ${config[$src/mysql/only]:=${config[_mysql_only]}}
+	: ${config[$src/mysql/skip]:=${config[_mysql_skip]}}
+	: ${config[$src/mysql/stru]:=${config[_mysql_stru]}}
+	: ${config[$src/mysql/flags]:=${config[_mysql_flags]}}
 
-	: ${config[$dst,mysql,path]:=${config[_mysql_path]}}
-	: ${config[$dst,mysql,host]:=${config[_mysql_host]}}
-	: ${config[$dst,mysql,user]:=${config[_mysql_user]}}
-	: ${config[$dst,mysql,pass]:=${config[_mysql_pass]}}
-	: ${config[$dst,mysql,port]:=${config[_mysql_port]}}
-	: ${config[$dst,mysql,_ssh]:=${config[_mysql_ssh]}}
-	: ${config[$dst,mysql,_docker]:=${config[_mysql_docker]}}
+	: ${config[$dst/mysql/path]:=${config[_mysql_path]}}
+	: ${config[$dst/mysql/host]:=${config[_mysql_host]}}
+	: ${config[$dst/mysql/user]:=${config[_mysql_user]}}
+	: ${config[$dst/mysql/pass]:=${config[_mysql_pass]}}
+	: ${config[$dst/mysql/port]:=${config[_mysql_port]}}
+	: ${config[$dst/mysql/_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$dst/mysql/_docker]:=${config[_mysql_docker]}}
 
 	local db_actions="initial"
-	if [[ "${config[$src,mysql,stru]}" ]]; then
+	if [[ "${config[$src/mysql/stru]}" ]]; then
 		db_actions="$db_actions structure"
 	fi
 
@@ -50,58 +50,58 @@ function syn_plugin_mysql() {
 		local skip=""
 		local tables=""
 		if [[ $action == "initial" ]]; then
-			for table in ${config[$src,mysql,only]}; do
+			for table in ${config[$src/mysql/only]}; do
 				skip+=" $table"
 			done
-			for table in ${config[$src,mysql,skip]} ${config[$src,mysql,stru]}; do
-				skip+=" --ignore-table=${config[$src,mysql,name]}.$table"
+			for table in ${config[$src/mysql/skip]} ${config[$src/mysql/stru]}; do
+				skip+=" --ignore-table=${config[$src/mysql/name]}.$table"
 			done
 		else
 			tables="-d"
-			for table in ${config[$src,mysql,stru]}; do
+			for table in ${config[$src/mysql/stru]}; do
 				tables+=" $table"
 			done
 		fi
 
 		# Build the src command
-		local cmdSrc="${config[$src,mysql,dump]} \
-			${config[$src,mysql,name]} \
-			${config[$src,mysql,flags]} \
+		local cmdSrc="${config[$src/mysql/dump]} \
+			${config[$src/mysql/name]} \
+			${config[$src/mysql/flags]} \
 			$skip \
 			$tables \
-			-h${config[$src,mysql,host]} \
-			-u${config[$src,mysql,user]} \
-			-p${config[$src,mysql,pass]} \
-			-P${config[$src,mysql,port]} \
+			-h${config[$src/mysql/host]} \
+			-u${config[$src/mysql/user]} \
+			-p${config[$src/mysql/pass]} \
+			-P${config[$src/mysql/port]} \
 		"
 
 		# Should src be sent to a docker container?
-		if [[ "${config[$src,mysql,_docker]}" ]]; then
-			cmdSrc=$(syn_docker_wrap "${config[$src,mysql,_docker]}" "$cmdSrc")
+		if [[ "${config[$src/mysql/_docker]}" ]]; then
+			cmdSrc=$(syn_docker_wrap "${config[$src/mysql/_docker]}" "$cmdSrc")
 		fi
 
 		# Should src be over SSH?
-		if [[ "${config[$src,mysql,_ssh]}" ]]; then
-			cmdSrc=$(syn_ssh_wrap "${config[$src,mysql,_ssh]}" "$cmdSrc")
+		if [[ "${config[$src/mysql/_ssh]}" ]]; then
+			cmdSrc=$(syn_ssh_wrap "${config[$src/mysql/_ssh]}" "$cmdSrc")
 		fi
 
 		# Build the dst command
-		local cmdDst="${config[$dst,mysql,path]} \
-			-D${config[$dst,mysql,name]} \
-			-h${config[$dst,mysql,host]} \
-			-u${config[$dst,mysql,user]} \
-			-p${config[$dst,mysql,pass]} \
-			-P${config[$dst,mysql,port]} \
+		local cmdDst="${config[$dst/mysql/path]} \
+			-D${config[$dst/mysql/name]} \
+			-h${config[$dst/mysql/host]} \
+			-u${config[$dst/mysql/user]} \
+			-p${config[$dst/mysql/pass]} \
+			-P${config[$dst/mysql/port]} \
 		"
 
 		# Should dst be sent to a docker container?
-		if [[ "${config[$dst,mysql,_docker]}" ]]; then
-			cmdDst=$(syn_docker_wrap "${config[$dst,mysql,_docker]}" "$cmdDst" "-i")
+		if [[ "${config[$dst/mysql/_docker]}" ]]; then
+			cmdDst=$(syn_docker_wrap "${config[$dst/mysql/_docker]}" "$cmdDst" "-i")
 		fi
 
 		# Should dst be over SSH?
-		if [[ "${config[$dst,mysql,_ssh]}" ]]; then
-			cmdDst=$(syn_ssh_wrap "${config[$dst,mysql,_ssh]}" "$cmdDst")
+		if [[ "${config[$dst/mysql/_ssh]}" ]]; then
+			cmdDst=$(syn_ssh_wrap "${config[$dst/mysql/_ssh]}" "$cmdDst")
 		fi
 
 		# Finish up
@@ -141,14 +141,14 @@ name:      The database name
 
 CONFIG EXAMPLE
 
-config[live,mysql,name]=myproddb
-config[live,mysql,user]=myuser
-config[live,mysql,pass]=mypass
-config[live,mysql,skip]=\"
+config[live/mysql/name]=myproddb
+config[live/mysql/user]=myuser
+config[live/mysql/pass]=mypass
+config[live/mysql/skip]=\"
     oldtable
     someothertable
 \"
-config[live,mysql,stru]=\"
+config[live/mysql/stru]=\"
     cache
     eventlog
 \"

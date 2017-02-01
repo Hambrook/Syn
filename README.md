@@ -33,21 +33,21 @@ Settings starting with an underscore (`_`) are connection config instead of spec
 Create a `.syn` file in your project root
 
     # Live config
-    config[live,mysql,_ssh]=user@livehost
-    config[live,mysql,name]=LIVENAME
-    config[live,mysql,user]=LIVEUSER
-    config[live,mysql,pass]=LIVEPASS
-    config[live,rsync,dirs]="
+    config[live/mysql/_ssh]=user@livehost
+    config[live/mysql/name]=LIVENAME
+    config[live/mysql/user]=LIVEUSER
+    config[live/mysql/pass]=LIVEPASS
+    config[live/rsync/dirs]="
         a=b
         foo=bar/sub
         anotherpath
     "
 
     # Local config
-    config[local,mysql,name]=mydb
+    config[local/mysql/name]=mydb
     #default user/pass of root/root will be used for db if not specified
-    config[local,rsync,_docker]=my_container_name
-    config[local,rsync,dirs]="
+    config[local/rsync/_docker]=my_container_name
+    config[local/rsync/dirs]="
         a=c
         foo=baz/sub
         anotherotherpath
@@ -76,7 +76,7 @@ The configuration will be built in the following order with each file overriding
 
 Most variables can handle being surrounded in double quotes, but especially for passwords, it's best to leave the quotes off and single escape any special characters (`$;()|\`, etc), eg
 
-    config[live,db,pass]=with\$pecial\;chars
+    config[live/mysql/pass]=with\$pecial\;chars
 
 ----
 ## Available commands
@@ -114,8 +114,8 @@ _Select only the actions you want to take, comma separated_
 
 Syn will automatically warn you before trying to synchronise TO any environment called "live" or "prod". But using the `_allow` setting, you can completely disallow or show warning prompts for any environment.
 
-    config[live,_allow]=false
-    config[staging,_allow]=warn
+    config[live/_allow]=false
+    config[staging/_allow]=warn
 
 ----
 ## Plugins
