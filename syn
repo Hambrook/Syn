@@ -256,6 +256,20 @@ function array_key_exists() {
 	eval '[ ${'$2'[$1]+muahaha} ]'
 }
 
+# Check if a plugin exists
+function syn_validate_plugin() {
+	if [[ $(set | grep "syn_plugin_$1 ()") ]]; then
+		echo 1;
+	else
+		echo "";
+	fi
+}
+
+# Get the actual plugin name from a potentially aliased (fuzzy) name... eg. rsync(webdirs)
+function syn_plugin_name_from_fuzzy() {
+	printf "$1" | sed -e 's/(.*//g'
+}
+
 
 ################################################################################
 # COMMAND WRAPPING
@@ -727,18 +741,6 @@ function syn_cmd_sync() {
 		eval "syn_plugin_${p} \"${x}\""
 	done
 }
-
-function syn_validate_plugin() {
-	if [[ $(set | grep "syn_plugin_$1 ()") ]]; then
-		echo 1;
-	else
-		echo "";
-	fi
-}
-function syn_plugin_name_from_fuzzy() {
-	printf "$1" | sed -e 's/(.*//g'
-}
-
 
 # Main processing function
 function main() {
