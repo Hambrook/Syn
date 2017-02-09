@@ -25,7 +25,7 @@ CONFIG EXAMPLE
 config[live/rsync/root]=/path/to/project/root
 config[live/rsync/_ssh]=deploy@livehost
 config[live/rsync/_flags]=-aclru --progress
-config[live/rsync/_flags+]=\"--rsync-path=\\\\\"sudo rsync\\\\\"\"
+config[live/rsync/_flags+]=\"--chown=www-data:www-data --rsync-path=\\\\\"sudo rsync\\\\\"\"
 config[live/rsync/_tunnel]=user@host.with.access.to.live
 config[live/rsync/dirs]=\"
     uploads=~/path/to/dir
