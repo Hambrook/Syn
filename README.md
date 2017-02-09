@@ -140,10 +140,10 @@ For example, if creating a plugin called "**foo**"...
 
     export SYN_PLUGIN_PATH="~/MySynPlugins"
 
-3. Create a file in that directory named after your plugin, with the `.synPlugin` suffix, eg `Foo.synPlugin`
+3. Create a file in that directory named after your plugin, with the `.synPlugin` suffix, eg `foo.synPlugin`
 4. Open up your plugin file and add two functions
- * syn\_action\_foo()
- * syn\_action\_foo\_help()
+ * syn\_plugin\_foo()
+ * syn\_plugin\_foo\_help()
 
 The help function will be called from Syn's help system when requested by the user (`syn --help foo`). It should describe what your plugin does and provide an example configuration.
 
