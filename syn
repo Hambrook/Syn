@@ -714,16 +714,29 @@ function syn_cmd_sync() {
 
 	# Check that all the actions exist
 	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
-		if [[ ! $(set | grep "syn_plugin_$x ()") ]]; then
-			syn_error "Plugin '$x' not found"
+		local p=$(syn_plugin_name_from_fuzzy $x)
+		if [[ ! $(syn_validate_plugin $p) ]]; then
+			syn_error "Plugin '$p' not found"
 		fi
 	done
 
 	# Run all the actions exist
 	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
 		printf "\nRunning plugin: %s\n" "$x"
-		eval "syn_plugin_${x}"
+		local p=$(syn_plugin_name_from_fuzzy $x)
+		eval "syn_plugin_${p} \"${x}\""
 	done
+}
+
+function syn_validate_plugin() {
+	if [[ $(set | grep "syn_plugin_$1 ()") ]]; then
+		echo 1;
+	else
+		echo "";
+	fi
+}
+function syn_plugin_name_from_fuzzy() {
+	printf "$1" | sed -e 's/(.*//g'
 }
 
 
@@ -741,7 +754,7 @@ function main() {
 	syn_parse_actions
 	syn_check_help_request "$@"
 
-	# Do the chosen command8
+	# Do the chosen command
 	eval "syn_cmd_${cmd}"
 
 	# Let's get out of here
