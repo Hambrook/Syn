@@ -267,7 +267,7 @@ function syn_validate_plugin() {
 
 # Get the actual plugin name from a potentially aliased (fuzzy) name... eg. rsync(webdirs)
 function syn_get_plugin_name_from_fuzzy() {
-	printf "$1" | sed -e 's/(.*//g'
+	printf "$1" | sed -e 's/[(\.].*//g'
 }
 
 
