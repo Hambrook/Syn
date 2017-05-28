@@ -118,6 +118,9 @@ _Specify an additional config file to load (after other attempts). Can be full o
 #### `--only`
 _Select only the actions you want to take, comma separated_
 
+#### `--force`
+_Push to live/prod/"warn" without confirmation prompt (if applicable)_
+
 ----
 ## Warnings and Protections
 

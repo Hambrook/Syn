@@ -87,9 +87,11 @@ declare -A config
 # Flags
 declare -A flags=(
 	[dryrun]=false
+	[force]=false
 )
 declare -A flags_help=(
 	[dryrun]="Show the commands that will be used, but don't run them"
+	[force]="Push to live/prod/'warn' without confirmation prompt (if applicable)"
 )
 
 # Vars
@@ -638,18 +640,21 @@ function syn_check_help_request() {
 function syn_validate_allow() {
 	# Check if we're pushing to a live environment
 	local to=$dst || $src
-	if [[ $to =~ (live|prod) || "${config[$to/_allow]}" == "warn" ]]; then
-		if syn_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
-			printf "Aborting\n"
-			exit
-		fi
-		printf "\n"
-	fi
 
 	# Check if we're pushing to a disallowed environment
 	if [[ "${config[$to/_allow]}" == false ]]; then
 		syn_error "Pushing to this environment is not allowed"
 		exit
+	fi
+
+	if [[ $to =~ (live|prod) || "${config[$to/_allow]}" == "warn" ]]; then
+		if ${flags[force]}; then
+			printf "Forcing override of dangerous deployment warning\n"
+		elif syn_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
+			printf "Aborting\n"
+			exit
+		fi
+		printf "\n"
 	fi
 }
 
