@@ -61,10 +61,10 @@ For full configuration options for each plugin, use `--help`
 
 You can also add aliases to your config files so that you can run the same plugin multiple times with completely different configurations.
 
-Simply put your alphanumeric alias in brakets after the plugin name and the differently aliased plugins will get run separately.
+Simply put your alphanumeric alias after the plugin name (separated by a period) and the differently aliased plugins will get run separately.
 
-    config[live/rsync(web)/_flags+]="--chmod=644"
-    config[live/rsync(nonweb)/_flags+]="--chmod=600"
+    config[live/rsync.web/_flags+]="--chmod=644"
+    config[live/rsync.nonweb/_flags+]="--chmod=600"
 
 ### Example of multiple configuration files
 
