@@ -371,7 +371,7 @@ function syn_cmd_actions() {
 	if [[ ! "${actions}" ]]; then
 		actions="\n  <none>"
 	fi
-	printf "Proposed actions for this sync:%s\n" "${actions}"
+	printf "Proposed actions for this sync:${actions}\n"
 }
 function syn_cmd_actions_help() {
 	printf "Show the actions that are configured for a src, dst, or both"
@@ -390,7 +390,7 @@ function syn_cmd_envs() {
 	if [[ ! "${envs}" ]]; then
 		envs="\n  <none>"
 	fi
-	printf "$(_ bold)Loaded Environments:$(_ r_bold)%s\n" "${envs}"
+	printf "$(_ bold)Loaded Environments:$(_ r_bold)${envs}\n"
 }
 function syn_cmd_envs_help() {
 	printf "List available environments"
@@ -419,8 +419,8 @@ function syn_cmd_paths() {
 		tmp_default_config_dir="<not set>"
 	fi
 	printf "$(_ bold)Custom Paths:$(_ r_bold)\n"
-	printf "  SYN_PLUGIN_PATH: %s\n" "${tmp_plugin_dir_custom}"
-	printf "  SYN_DEFAULT_PATH: %s\n" "${tmp_default_config_dir}"
+	printf "  SYN_PLUGIN_PATH: ${tmp_plugin_dir_custom}\n"
+	printf "  SYN_DEFAULT_PATH: ${tmp_default_config_dir}\n"
 }
 function syn_cmd_paths_help() {
 	printf "List configured paths"
@@ -435,7 +435,7 @@ function syn_cmd_plugins() {
 	if [[ ! "${plgs}" ]]; then
 		plgs="\n  <none>"
 	fi
-	printf "$(_ bold)Loaded Plugins:$(_ r_bold)%s\n" "${plgs}"
+	printf "$(_ bold)Loaded Plugins:$(_ r_bold)${plgs}\n"
 }
 function syn_cmd_plugins_help() {
 	printf "List all available plugins"
