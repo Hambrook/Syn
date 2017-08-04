@@ -60,7 +60,7 @@
 
 _SYN_VERSION=0.2
 _SYN_AUTHOR="Rick Hambrook"
-_SYN_WEBSITE="http://www.rickhambrook.com"
+_SYN_WEBSITE="https://www.rickhambrook.com"
 
 # Initial settings
 declare cmd="sync"
