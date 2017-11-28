@@ -231,7 +231,7 @@ function syn_confirm() {
 			;;
 	esac
 
-	read -p "$1 [$prompt]: " response
+	read -p "$1 [$prompt]:$3 " response
 	if [[ $response =~ ^[Yy].* ]]; then
 		return 1
 	fi
@@ -267,7 +267,7 @@ function syn_validate_plugin() {
 	fi
 }
 
-# Get the actual plugin name from a potentially aliased (fuzzy) name... eg. rsync(webdirs)
+# Get the actual plugin name from a potentially aliased (fuzzy) name... eg. rsync.webdirs
 function syn_get_plugin_name_from_fuzzy() {
 	printf "$1" | sed -e 's/[(\.].*//g'
 }
@@ -649,8 +649,9 @@ function syn_validate_allow() {
 
 	if [[ $to =~ (live|prod) || "${config[$to/_allow]}" == "warn" ]]; then
 		if ${flags[force]}; then
-			printf "Forcing override of dangerous deployment warning\n"
-		elif syn_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
+			printf "$(_ bg_yellow)\n\tWARNING: Forcing override of dangerous deployment warning\n$(_ reset)\n"
+			#printf "$(_ yellow bold)WARNING: Forcing override of dangerous deployment warning$(_ reset)\n"
+		elif syn_confirm "$(_ yellow)Pushing to this environment could be dangerous, are you sure?" false "$(_ reset)"; then
 			printf "Aborting\n"
 			exit
 		fi
@@ -726,7 +727,7 @@ function syn_cmd_sync() {
 	syn_validate_allow
 
 	# Show a summary
-	printf "Proceeding to sync %s from %s to %s\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
+	printf "Proceeding to sync %s from $(_ bold)%s$(_ reset) to $(_ bold)%s$(_ reset)\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
 	if ${flags[dryrun]}; then
 		printf "\n[DRYRUN]\n"
 	fi
@@ -741,11 +742,12 @@ function syn_cmd_sync() {
 
 	# Run all the actions exist
 	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
-		printf "\nRunning plugin: %s\n" "$x"
+		printf "\n$(_ green bold)Running plugin: %s$(_ reset)\n" "$x"
 		local p=$(syn_get_plugin_name_from_fuzzy $x)
 		eval "syn_plugin_${p} \"${x}\""
 	done
 }
+
 
 # Main processing function
 function main() {
