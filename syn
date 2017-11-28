@@ -728,11 +728,12 @@ function syn_cmd_sync() {
 
 	syn_validate_allow
 
+	if ${flags[dryrun]}; then
+		printf "$(_ bg_green)\n\tDRY RUN: No actions will be taken, commands will be output instead of run\n$(_ reset)\n\n"
+	fi
+
 	# Show a summary
 	printf "Proceeding to sync %s from $(_ bold)%s$(_ reset) to $(_ bold)%s$(_ reset)\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
-	if ${flags[dryrun]}; then
-		printf "\n[DRYRUN]\n"
-	fi
 
 	# Check that all the actions exist
 	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
