@@ -243,14 +243,16 @@ function syn_confirm() {
 
 # In Array
 function in_array() {
-	local haystack="${1}[@]"
-	local needle=${2}
-	for i in ${!haystack}; do
-		if [[ ${i} == "${needle}" ]]; then
-			return 0
+	local array="$1[@]"
+	local seeking=$2
+	local in=1
+	for element in "${!array}"; do
+		if [[ $element == $seeking ]]; then
+			in=0
+			break
 		fi
 	done
-	return 1
+	return $in
 }
 
 # Check if an array key exists
