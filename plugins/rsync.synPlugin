@@ -38,6 +38,9 @@ config[live/rsync/dirs]=\"
 # rsync plugin defaults
 config[_rsync_flags]="-aclru --progress --exclude .git" # a=archive, c=checksum, l=symlinks as symlinks, r=recursive, u=skip newer files, v=verbose
 
+# Vars
+vars[rsync-only]=""
+vars_help[rsync-only]="Specify dirs to process and ignore others, comma separated"
 
 # Plugin: RSYNC
 function syn_plugin_rsync() {
@@ -48,6 +51,12 @@ function syn_plugin_rsync() {
 	# Defaults
 	: ${config[$dst/$config_key/_flags]:=${config[_rsync_flags]}}
 
+	# Limit as per parameters
+	local onlydirs=""
+	if [[ "${vars[rsync-only]}" ]]; then
+		onlydirs=(${vars[rsync-only]//,/ })
+	fi
+
 	# Loop the environments and normalise the paths into two arrays
 
 	# Source
@@ -56,7 +65,9 @@ function syn_plugin_rsync() {
 		(( cnt++ ))
 		local pathinfo=(${file//=/ })
 		if [[ "${pathinfo[1]}" ]]; then
-			src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+			if [[ -z $onlydirs ]] || in_array onlydirs "${pathinfo[0]}"; then
+				src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+			fi
 		else
 			src_paths["$cnt"]="${pathinfo[0]}"
 		fi
@@ -72,7 +83,9 @@ function syn_plugin_rsync() {
 		(( cnt++ ))
 		local pathinfo=(${file//=/ })
 		if [[ "${pathinfo[1]}" ]]; then
-			dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+			if [[ -z $onlydirs ]] || in_array onlydirs "${pathinfo[0]}"; then
+				dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+			fi
 		else
 			dst_paths["$cnt"]="${pathinfo[0]}"
 		fi
