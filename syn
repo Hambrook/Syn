@@ -4,16 +4,13 @@
 #
 # Easily synchronise website content (database and asset files) between environments
 #
-# @version    0.2
+# @version    0.3
 # @author     Rick Hambrook <rick@rickhambrook.com>
 # @copyright  Copyright (c) 2016 Rick Hambrook
 # @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
 
 
 # TODO
-# [X] Add rsync ssh proxy (-e "ssh -A root@proxy ssh")
-# [X] Fix rsync flags not being applied
-# [X] Update plugin docs with new naming scheme, and flag/var support
 # [ ] Use centralised config file for paths and setting, docker/docker-machine (location optionally configurable via env var)
 # [ ] Add boot2docker support
 # [ ] Add pre-flight validation checks for each plugin
@@ -28,37 +25,10 @@
 # [ ] RSYNC: Find a better way to define file paths
 # [ ] Maybe load a single location as global config, maybe ~/.syn/config
 # [ ] Add shorthand parameters?
-# [ ] Enable notify-send?
 # [ ] Enable dumping of sample config from each plugin?
-# [ ] Clean up logic around mysql only/skip/stru
 # [ ] RSYNC: Add excludes list
-# [X] Enable specifying a file to load (--file)
-# [X]   - Search in specified location for RSYNC (eg store all syn RSYNC in one location, specified by an env var)
-# [ ] Add more error checking
-# [X]   - Check that both environments exist
-# [X]   - Require two environments
-# [X]   - Check a plugin exists before attempting to use it
-# [X]   - Only sync file locations with matching keys
-# [X] RSYNC: add manual and auto root
-# [X] Rename builtin plugins to "mysql" and "rsync" instead of "db" and "files"
-# [X] Add optional docker layer
-# [X] Move flags, vars, and commands to being dynamic with dynamic help so that plugins can add them
-# [X] Add default path for use with the --file parameter
-# [X] Automatically list actions to be taken for each sync
-# [X] Enable listing of environments (--envs)?
-# [X] Enable listing of plugins (--plugins)?
-# [X] Load from multiple RSYNC, eg in repo, locally and globally
-# [X] Support loading extra action plugins from an environmental path
-# [X] Help system
-# [X]   - Dynamically list action plugins
-# [X]   - Dynamically list action plugin help
-# [X] MySQL: Allow skipping of tables
-# [X] MySQL: Allow structure-only table copies
-# [X] MySQL: Allow toggling of using SSH for MySQL connections
-# [X] Prompt/warn before pushing to prod/live or if _allow is set to "warn"
-# [X] Disallow if _allow is set to false
 
-_SYN_VERSION=0.2
+_SYN_VERSION=0.3
 _SYN_AUTHOR="Rick Hambrook"
 _SYN_WEBSITE="https://www.rickhambrook.com"
 
@@ -749,6 +719,14 @@ function syn_cmd_sync() {
 		local p=$(syn_get_plugin_name_from_fuzzy $x)
 		eval "syn_plugin_${p} \"${x}\""
 	done
+
+	if which notify-send >/dev/null; then
+		local text="$src >> $dst"
+		if [[ "${vars[file]}" ]]; then
+			text="[${vars[file]}] $text"
+		fi
+		notify-send "Syn Complete" "${text}"
+	fi
 }
 
 
