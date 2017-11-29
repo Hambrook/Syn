@@ -721,7 +721,7 @@ function syn_cmd_sync() {
 	done
 
 	if which notify-send >/dev/null; then
-		local text="$src >> $dst"
+		local text="$src > $dst"
 		if [[ "${vars[file]}" ]]; then
 			text="[${vars[file]}] $text"
 		fi
