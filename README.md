@@ -155,6 +155,21 @@ The other function will be called when it's time for you plugin to do its thing.
 For reference, see the included plugins in the `plugins/` directory.
 
 ----
+## RSYNC Plugin
+
+The rsync plugin now includes a new `--rsync-only` parameter that will let you cherry pick individual dirs from your full list of dirs. For example...
+
+    syn live local --rsync-only uploads,app
+
+Will only sync those two directories from the following rsync config
+
+    config[live/rsync/dirs]="
+        uploads=~/path/to/dir
+        configs=/root/based/path
+        app=/app
+    "
+
+----
 ## Default Path
 
 You can specify a default path which Syn will look in (as well as the current directory) when using the `--file` parameter. For example, add this to your `.bashrc` file.
