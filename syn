@@ -57,10 +57,12 @@ declare -A config
 
 # Flags
 declare -A flags=(
+	[debug]=false
 	[dryrun]=false
 	[force]=false
 )
 declare -A flags_help=(
+	#[debug]="Internal use only for now"
 	[dryrun]="Show the commands that will be used, but don't run them"
 	[force]="Push to live/prod/'warn' without confirmation prompt (if applicable)"
 )
@@ -234,9 +236,9 @@ function array_key_exists() {
 # Check if a plugin exists
 function syn_validate_plugin() {
 	if [[ $(set | grep "syn_plugin_$1 ()") ]]; then
-		echo 1;
+		echo 1
 	else
-		echo "";
+		echo ""
 	fi
 }
 
@@ -265,6 +267,23 @@ function syn_post_summary() {
 		# seconds
 		time_diff_str=`date -u -d @"${time_diff}" +'%-Ss'`;
 	fi
+
+	# Only
+	local plugins_str="<all>"
+	if [ "${vars[only][$#]}" ]; then
+		plugins_str="${vars[only][@]}"
+	fi
+
+	# Inline summary
+	printf "$(_ bg_green)
+	Syn Complete
+
+	From: $(_ bold)%s$(_ r_bold) to $(_ bold)%s$(_ r_bold)
+	File: %s
+	Plugins: %s
+	Time: %s
+$(_ bg_default)
+" $src $dst "${vars[file]}" "${plugins_str}" "${time_diff_str}"
 
 	# Popup notification
 	if which notify-send >/dev/null; then
@@ -748,7 +767,7 @@ function syn_cmd_sync() {
 		eval "syn_plugin_${p} \"${x}\""
 	done
 
-	if ! ${flags[dryrun]}; then
+	if ! ${flags[dryrun]} || ${flags[debug]}; then
 		syn_post_summary
 	fi
 }
