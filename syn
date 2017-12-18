@@ -36,8 +36,9 @@ _SYN_WEBSITE="https://www.rickhambrook.com"
 declare cmd="sync"
 declare src
 declare dst
-declare config_cnt
 declare plugin_cnt
+declare config_cnt
+declare config_files=""
 declare local_root=""
 declare -A actions
 declare -A commands
@@ -270,9 +271,11 @@ function syn_post_summary() {
 
 	# Only
 	local plugins_str="<all>"
-	if [ "${vars[only][$#]}" ]; then
+	if [[ "${vars[only][$#]}" ]]; then
 		plugins_str="${vars[only][@]}"
 	fi
+
+	local tmp_configs=${config_files//"\n"/"\n\t\t"}
 
 	# Inline summary
 	printf "$(_ bg_green)
@@ -282,6 +285,7 @@ function syn_post_summary() {
 	File:    %s
 	Plugins: %s
 	Time:    $(_ bold)%s$(_ r_bold)
+	Configs: $tmp_configs
 $(_ bg_default)
 " $src $dst "${vars[file]}" "${plugins_str}" "${time_diff_str}"
 
@@ -372,6 +376,8 @@ $(syn_cmd_envs)
 $(syn_cmd_plugins)
 
 $(syn_cmd_paths)
+
+$(syn_cmd_configs)
 "
 # | less
 
@@ -460,6 +466,14 @@ function syn_cmd_plugins_help() {
 	printf "List all available plugins"
 }
 
+# Show configuration files
+function syn_cmd_configs() {
+	printf "$(_ bold)Loaded Configs:$(_ r_bold)%s\n" "${config_files//"\n"/"\n  "}"
+}
+function syn_cmd_configs_help() {
+	printf "List all available configuration files"
+}
+
 # Install the thing
 function syn_cmd_install() {
 	if [[ -L "${BASH_SOURCE[0]}" ]]; then
@@ -485,13 +499,17 @@ function syn_load_configs() {
 	config_cnt=0
 	for filename in ".syn.global" ".syn" ".syn.local"; do
 		local currpath="$PWD"
-		while [[ "$currpath" != "/" ]]; do
-			if [[ -r "$currpath/$filename" ]]; then
-				. "$currpath/$filename"
-				(( config_cnt++ ))
+		while [[ "${currpath}" != "/" ]]; do
+			if [[ -r "${currpath}/${filename}" ]]; then
+				config_files="${config_files}\n${$currpath}/${filename}"
+				if ${flags[debug]}; then
+					printf "Loading config file: %s\n" "${$currpath}/${filename}"
+				fi
 				if [[ -z "$local_root" ]]; then
 					local_root="$currpath"
 				fi
+				. "$currpath/$filename"
+				(( config_cnt++ ))
 			fi
 			currpath=$(cd "$currpath/.." && pwd) || syn_error "Invalid path"
 		done
@@ -508,6 +526,10 @@ function syn_load_config_specific() {
 		vars[file]="${default_config_dir}/$(pwd | sed -e 's/.*\///g')"
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
 			if [[ -f "$f" ]]; then
+				config_files="${config_files}\n${f}"
+				if ${flags[debug]}; then
+					printf "Loading config file: %s\n" "$f"
+				fi
 				. "$f"
 				(( config_cnt++ ))
 			fi
@@ -516,10 +538,18 @@ function syn_load_config_specific() {
 		for f in "${vars[file]}" "${vars[file]}.syn"; do
 			if [[ -f "$f" ]]; then
 				# Otherwise we'll check the current dir for the named file
+				config_files="${config_files}\n${f}"
+				if ${flags[debug]}; then
+					printf "Loading config file: %s\n" "$f"
+				fi
 				. "$f"
 				(( config_cnt++ ))
 			elif [[ -d "${default_config_dir}" && -f "${default_config_dir}/$f" ]]; then
 				# And the default location too
+				config_files="${config_files}\n${default_config_dir}/${f}"
+				if ${flags[debug]}; then
+					printf "Loading config file: %s\n" "${default_config_dir}/$f"
+				fi
 				. "${default_config_dir}/$f"
 				(( config_cnt++ ))
 			fi
