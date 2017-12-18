@@ -276,12 +276,12 @@ function syn_post_summary() {
 
 	# Inline summary
 	printf "$(_ bg_green)
-	Syn Complete
+	$(_ bold)S Y N   C O M P L E T E$(_ r_bold)
 
 	From: $(_ bold)%s$(_ r_bold) to $(_ bold)%s$(_ r_bold)
 	File: %s
 	Plugins: %s
-	Time: %s
+	Time: $(_ bold)%s$(_ r_bold)
 $(_ bg_default)
 " $src $dst "${vars[file]}" "${plugins_str}" "${time_diff_str}"
 
