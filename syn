@@ -50,6 +50,7 @@ declare plugin_dir_builtin
 declare plugin_dir_custom
 declare default_config_dir
 declare colour_enabled=true
+declare time_start=`date +"%s"`
 
 # Default settings for plugins to extend
 declare -A config
@@ -242,6 +243,33 @@ function syn_validate_plugin() {
 # Get the actual plugin name from a potentially aliased (fuzzy) name... eg. rsync.webdirs
 function syn_get_plugin_name_from_fuzzy() {
 	printf "$1" | sed -e 's/[(\.].*//g'
+}
+
+# Generate and display a post-process summary
+function syn_post_summary() {
+	local summary_text="${src} > ${dst}"
+	if [[ "${vars[file]}" ]]; then
+		summary_text="[${vars[file]}] ${summary_text}"
+	fi
+
+	# Time reporting
+	local time_diff=$(( `date +"%s"` - $time_start ))
+	local time_diff_str=""
+	if (( $time_diff > 3599 )); then
+		# hours, minutes, seconds
+		time_diff_str=`date -u -d @"${time_diff}" +'%-Hh %-Mm %-Ss'`;
+	elif (( $time_diff > 59 )); then
+		# minutes, seconds
+		time_diff_str=`date -u -d @"${time_diff}" +'%-Mm %-Ss'`;
+	else
+		# seconds
+		time_diff_str=`date -u -d @"${time_diff}" +'%-Ss'`;
+	fi
+
+	# Popup notification
+	if which notify-send >/dev/null; then
+		notify-send "Syn Complete (${time_diff_str})" "${summary_text}"
+	fi
 }
 
 
@@ -702,7 +730,7 @@ function syn_cmd_sync() {
 		printf "$(_ bg_green)\n\tDRY RUN: No actions will be taken, commands will be output instead of run\n$(_ reset)\n\n"
 	fi
 
-	# Show a summary
+	# Pre-process summary
 	printf "Proceeding to sync %s from $(_ bold)%s$(_ reset) to $(_ bold)%s$(_ reset)\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
 
 	# Check that all the actions exist
@@ -720,12 +748,8 @@ function syn_cmd_sync() {
 		eval "syn_plugin_${p} \"${x}\""
 	done
 
-	if which notify-send >/dev/null; then
-		local text="$src > $dst"
-		if [[ "${vars[file]}" ]]; then
-			text="[${vars[file]}] $text"
-		fi
-		notify-send "Syn Complete" "${text}"
+	if ! ${flags[dryrun]}; then
+		syn_post_summary
 	fi
 }
 
