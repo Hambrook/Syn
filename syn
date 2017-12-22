@@ -187,32 +187,25 @@ function syn_error() {
 
 # Show a prompt for confirmation
 function syn_confirm() {
-	# $1 = Confirmation message
+	# $1 = Question
 	# $2 = default (y/true/n/false)
 
-	case $2 in
-		1|y|Y|true)
-			prompt="Y/n"
-			default=1
-			;;
-		0|n|N|false)
-			prompt="y/N"
-			default=0
-			;;
-		*) 
-			prompt="y/n"
-			default=0
-			;;
-	esac
+	local prompt="y/N"
+	local default=1
+	if [[ $2 =~ ^[Yy].* ]]; then
+		prompt="Y/n"
+		default=0
+	fi
 
-	read -p "$1 [$prompt]:$3 " response
+	read -p "$(_ yellow)${1} [${prompt}]:$(_ reset) " response
+
 	if [[ $response =~ ^[Yy].* ]]; then
-		return 1
+		return 0
 	fi
 	if [[ $response = "" ]]; then
 		return $default
 	fi
-	return 0
+	return 1
 }
 
 # In Array
@@ -700,7 +693,7 @@ function syn_validate_allow() {
 		if ${flags[force]}; then
 			printf "$(_ bg_yellow)\n\tWARNING: Forcing override of dangerous deployment warning\n$(_ reset)\n"
 			#printf "$(_ yellow bold)WARNING: Forcing override of dangerous deployment warning$(_ reset)\n"
-		elif syn_confirm "$(_ yellow)Pushing to this environment could be dangerous, are you sure?" false "$(_ reset)"; then
+		elif ! syn_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
 			printf "Aborting\n"
 			exit
 		fi
