@@ -36,7 +36,18 @@ config[live/rsync/dirs]=\"
 
 
 # rsync plugin defaults
-config[_rsync_flags]="-aclru --progress" # a=archive, c=checksum, l=symlinks as symlinks, r=recursive, u=skip newer files, v=verbose
+config[_rsync_flags]="-acEhlrtuz --progress --no-motd"
+# a = archive
+# c = checksum
+# E = preserve executability
+# h = human readable numbers
+# l = symlinks as symlinks
+# r = recursive
+# u = skip newer files
+# z = compress for transfer
+# p = preserve permissions
+# v = verbose
+
 
 # Vars
 vars[rsync-only]=""
