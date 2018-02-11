@@ -44,7 +44,7 @@ config[_mysql_path]="mysql"
 config[_mysql_dump]="mysqldump"
 config[_mysql_host]="127.0.0.1"
 config[_mysql_user]="root"
-config[_mysql_pass]="root"
+config[_mysql_pass]=""
 config[_mysql_port]=3306
 config[_mysql_skip]=""
 config[_mysql_flags]="--add-drop-database --compress --hex-blob --opt --quote-names -v"
@@ -114,9 +114,13 @@ function syn_plugin_mysql() {
 			$tables \
 			-h${config[$src/$config_key/host]} \
 			-u${config[$src/$config_key/user]} \
-			-p${config[$src/$config_key/pass]} \
 			-P${config[$src/$config_key/port]} \
 		"
+
+		# Is there a password set?
+		if [[ "${config[$src/$config_key/pass]}" ]]; then
+			cmdSrc="$cmdSrc -p${config[$src/$config_key/pass]} "
+		fi
 
 		# Should src be sent to a docker container?
 		if [[ "${config[$src/$config_key/_docker]}" ]]; then
@@ -133,9 +137,13 @@ function syn_plugin_mysql() {
 			-D${config[$dst/$config_key/name]} \
 			-h${config[$dst/$config_key/host]} \
 			-u${config[$dst/$config_key/user]} \
-			-p${config[$dst/$config_key/pass]} \
 			-P${config[$dst/$config_key/port]} \
 		"
+
+		# Is there a password set?
+		if [[ "${config[$dst/$config_key/pass]}" ]]; then
+			cmdDst="$cmdDst -p${config[$dst/$config_key/pass]} "
+		fi
 
 		# Should dst be sent to a docker container?
 		if [[ "${config[$dst/$config_key/_docker]}" ]]; then
