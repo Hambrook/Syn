@@ -84,8 +84,8 @@ function syn_plugin_rsync() {
 		fi
 	done
 	local src_ssh=""
-	if [[ "${config[$src/$config_key/_ssh]}" ]]; then
-		src_ssh="${config[$src/$config_key/_ssh]}:"
+	if [[ "${config[${src}/${config_key}/_ssh]}" ]]; then
+		src_ssh="${config[${src}/${config_key}/_ssh]}:"
 	fi
 
 	# Destination
@@ -102,8 +102,8 @@ function syn_plugin_rsync() {
 		fi
 	done
 	local dst_ssh=""
-	if [[ "${config[$dst/$config_key/_ssh]}" ]]; then
-		dst_ssh="${config[$dst/$config_key/_ssh]}:"
+	if [[ "${config[${dst}/${config_key}/_ssh]}" ]]; then
+		dst_ssh="${config[${dst}/${config_key}/_ssh]}:"
 		src_ssh="" # Can't use two remotes
 	fi
 
@@ -112,43 +112,43 @@ function syn_plugin_rsync() {
 		if [[ "${dst_paths[$i]}" ]]; then
 			local pattern="^(~|/|./|../)"
 			local src_path="$(printf "${src_paths[$i]}" | sed -e 's/\*$//')"
-			if [[ ( ( "${config[$src/$config_key/root]}" ) || ( $local_root && ! "${config[$src/$config_key/_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
-				if [[ "${config[$src/$config_key/root]}" ]]; then
-					src_path="${config[$src/$config_key/root]}/$src_path"
+			if [[ ( ( "${config[${src}/${config_key}/root]}" ) || ( $local_root && ! "${config[${src}/${config_key}/_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
+				if [[ "${config[${src}/${config_key}/root]}" ]]; then
+					src_path="${config[${src}/${config_key}/root]}/${src_path}"
 				else
-					src_path="$local_root/$src_path"
+					src_path="${local_root}/${src_path}"
 				fi
 			fi
 			local dst_path="$(printf "${dst_paths[$i]}" | sed -e 's/\*$//')"
-			if [[ ( ( "${config[$dst/$config_key/root]}" ) || ( $local_root && ! "${config[$dst/$config_key/_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
-				if [[ "${config[$dst/$config_key/root]}" ]]; then
-					dst_path="${config[$dst/$config_key/root]}/$dst_path"
+			if [[ ( ( "${config[${dst}/${config_key}/root]}" ) || ( $local_root && ! "${config[${dst}/${config_key}/_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
+				if [[ "${config[${dst}/${config_key}/root]}" ]]; then
+					dst_path="${config[${dst}/${config_key}/root]}/${dst_path}"
 				else
-					dst_path="$local_root/$dst_path"
+					dst_path="${local_root}/${dst_path}"
 				fi
 			fi
 
 			# Are we routing through an SSH tunnel?
 			local tunnel=""
-			if [[ "${config[$src/$config_key/_tunnel]}" && "${config[$dst/$config_key/_tunnel]}" ]]; then
+			if [[ "${config[${src}/${config_key}/_tunnel]}" && "${config[${dst}/${config_key}/_tunnel]}" ]]; then
 				syn_error "Sorry, you can't use _tunnel for both source and destination."
 			fi
-			if [[ "${config[$src/$config_key/_tunnel]}" ]]; then
-				tunnel="-e 'ssh -A ${config[$src/$config_key/_tunnel]} ssh'"
-			elif [[ "${config[$dst/$config_key/_tunnel]}" ]]; then
-				tunnel="-e 'ssh -A ${config[$dst/$config_key/_tunnel]} ssh'"
+			if [[ "${config[${src}/${config_key}/_tunnel]}" ]]; then
+				tunnel="-e 'ssh -A ${config[${src}/${config_key}/_tunnel]} ssh'"
+			elif [[ "${config[${dst}/${config_key}/_tunnel]}" ]]; then
+				tunnel="-e 'ssh -A ${config[${dst}/${config_key}/_tunnel]} ssh'"
 			fi
 
 			local rsync_cmd="rsync \
-				${config[$dst/$config_key/_flags]} ${config[$dst/$config_key/_flags+]} \
-				$tunnel \
-				$src_ssh$src_path/ \
-				$dst_ssh$dst_path
+				${config[${dst}/${config_key}/_flags]} ${config[${dst}/${config_key}/_flags+]} \
+				${tunnel} \
+				${src_ssh}${src_path}/ \
+				${dst_ssh}${dst_path}
 			"
 
 			# Should src be over SSH?
-			if [[ "${config[$src/$config_key/_ssh]}" && "${config[$dst/$config_key/_ssh]}" ]]; then
-				rsync_cmd=$(syn_ssh_wrap "${config[$src/$config_key/_ssh]}" "$rsync_cmd")
+			if [[ "${config[${src}/${config_key}/_ssh]}" && "${config[${dst}/${config_key}/_ssh]}" ]]; then
+				rsync_cmd=$(syn_ssh_wrap "${config[${src}/${config_key}/_ssh]}" "${rsync_cmd}")
 			fi
 			if ${flags[dryrun]}; then
 				printf "%s\n" "$rsync_cmd"

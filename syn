@@ -278,7 +278,7 @@ function syn_post_summary() {
 	File:    %s
 	Plugins: %s
 	Time:    $(_ bold)%s$(_ r_bold)
-	Configs: $tmp_configs
+	Configs: ${tmp_configs}
 $(_ bg_default)
 " $src $dst "${vars[file]}" "${plugins_str}" "${time_diff_str}"
 
@@ -384,7 +384,7 @@ function syn_cmd_help_help() {
 function syn_cmd_actions() {
 	local actions=""
 	for a in ${vars[only]}; do
-		actions+="\n  $a"
+		actions+="\n  ${a}"
 	done
 	if [[ ! "${actions}" ]]; then
 		actions="\n  <none>"
@@ -400,8 +400,8 @@ function syn_cmd_envs() {
 	# $1 = [true/false] show 'readonly' status
 	local envs=""
 	for e in ${environments[*]}; do
-		envs+="\n  $e"
-		if [[ ! "$1" == true && "${config[$e/_allow]}" == false ]]; then
+		envs+="\n  ${e}"
+		if [[ ! "$1" == true && "${config[${e}/_allow]}" == false ]]; then
 			envs+=" [read only]"
 		fi
 	done
@@ -448,7 +448,7 @@ function syn_cmd_paths_help() {
 function syn_cmd_plugins() {
 	local plgs=""
 	for p in ${plugins[*]}; do
-		plgs+="\n  $p"
+		plgs+="\n  ${p}"
 	done
 	if [[ ! "${plgs}" ]]; then
 		plgs="\n  <none>"
@@ -491,20 +491,20 @@ function syn_cmd_install_help() {
 function syn_load_configs() {
 	config_cnt=0
 	for filename in ".syn.global" ".syn" ".syn.local"; do
-		local currpath="$PWD"
+		local currpath="${PWD}"
 		while [[ "${currpath}" != "/" ]]; do
 			if [[ -r "${currpath}/${filename}" ]]; then
-				config_files="${config_files}\n${$currpath}/${filename}"
+				config_files="${config_files}\n${currpath}/${filename}"
 				if ${flags[debug]}; then
-					printf "Loading config file: %s\n" "${$currpath}/${filename}"
+					printf "Loading config file: %s\n" "${currpath}/${filename}"
 				fi
-				if [[ -z "$local_root" ]]; then
-					local_root="$currpath"
+				if [[ -z "${local_root}" ]]; then
+					local_root="${currpath}"
 				fi
-				. "$currpath/$filename"
+				. "${currpath}/${filename}"
 				(( config_cnt++ ))
 			fi
-			currpath=$(cd "$currpath/.." && pwd) || syn_error "Invalid path"
+			currpath=$(cd "${currpath}/.." && pwd) || syn_error "Invalid path"
 		done
 	done
 }
@@ -537,13 +537,13 @@ function syn_load_config_specific() {
 				fi
 				. "$f"
 				(( config_cnt++ ))
-			elif [[ -d "${default_config_dir}" && -f "${default_config_dir}/$f" ]]; then
+			elif [[ -d "${default_config_dir}" && -f "${default_config_dir}/${f}" ]]; then
 				# And the default location too
 				config_files="${config_files}\n${default_config_dir}/${f}"
 				if ${flags[debug]}; then
-					printf "Loading config file: %s\n" "${default_config_dir}/$f"
+					printf "Loading config file: %s\n" "${default_config_dir}/${f}"
 				fi
-				. "${default_config_dir}/$f"
+				. "${default_config_dir}/${f}"
 				(( config_cnt++ ))
 			fi
 		done
@@ -556,7 +556,7 @@ function syn_load_config_specific() {
 		elif [[ ! -d "${SYN_DEFAULT_PATH}" ]]; then
 			err=". Also, SYN_DEFAULT_PATH (${SYN_DEFAULT_PATH}) is not valid."
 		fi
-		syn_error "Could not find specific config file (${vars[file]})$err"
+		syn_error "Could not find specific config file (${vars[file]})${err}"
 	fi
 }
 
@@ -660,7 +660,7 @@ function syn_parse_plugins() {
 	plugins=""
 	for p in $(compgen -A function syn_plugin_); do
 		if [[ ! $p =~ _help$ ]]; then
-			plugins="$plugins ${p//syn_plugin_/ }"
+			plugins="${plugins} ${p//syn_plugin_/ }"
 		fi
 	done
 }
@@ -684,12 +684,12 @@ function syn_validate_allow() {
 	local to=$dst || $src
 
 	# Check if we're pushing to a disallowed environment
-	if [[ "${config[$to/_allow]}" == false ]]; then
+	if [[ "${config[${to}/_allow]}" == false ]]; then
 		syn_error "Pushing to this environment is not allowed"
 		exit
 	fi
 
-	if [[ $to =~ (live|prod) || "${config[$to/_allow]}" == "warn" ]]; then
+	if [[ $to =~ (live|prod) || "${config[${to}/_allow]}" == "warn" ]]; then
 		if ${flags[force]}; then
 			printf "$(_ bg_yellow)\n\tWARNING: Forcing override of dangerous deployment warning\n$(_ reset)\n"
 			#printf "$(_ yellow bold)WARNING: Forcing override of dangerous deployment warning$(_ reset)\n"
@@ -709,7 +709,7 @@ function syn_validate_require_one_env() {
 	fi
 	# Is the environment valid?
 	if [[ ! "${environments[$src]}" ]]; then
-		syn_error "Environment '$src' doesn't exist"
+		syn_error "Environment '${src}' doesn't exist"
 	fi
 }
 
@@ -749,7 +749,7 @@ function syn_banner() {
            __/ |         $(_ green r_bold)Website: %s$(_ lightgreen bold)
           |___/
 
-$(_ reset)" "$_SYN_VERSION" "$_SYN_AUTHOR" "$_SYN_WEBSITE"
+$(_ reset)" "${_SYN_VERSION}" "${_SYN_AUTHOR}" "${_SYN_WEBSITE}"
 }
 
 
