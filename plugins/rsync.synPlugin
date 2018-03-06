@@ -48,9 +48,14 @@ config[_rsync_flags]="-acEhlrtuz --progress --no-motd"
 # v = verbose
 
 
+# Flags
+flags[rsync-dryrun]=false
+flags_help[rsync-dryrun]="Show anticipated changed without actually doing them"
+
 # Vars
 vars[rsync-only]=""
 vars_help[rsync-only]="Specify dirs to process and ignore others, comma separated"
+
 
 # Plugin: RSYNC
 function syn_plugin_rsync() {
@@ -60,6 +65,11 @@ function syn_plugin_rsync() {
 
 	# Defaults
 	: ${config[$dst/$config_key/_flags]:=${config[_rsync_flags]}}
+
+	# Dryrun?
+	if ${flags[rsync-dryrun]}; then
+		config[$dst/$config_key/_flags+]="${config[$dst/$config_key/_flags+]} --dry-run"
+	fi
 
 	# Limit as per parameters
 	local onlydirs=""
