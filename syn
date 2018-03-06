@@ -4,9 +4,9 @@
 #
 # Easily synchronise website content (database and asset files) between environments
 #
-# @version    0.3
+# @version    0.4
 # @author     Rick Hambrook <rick@rickhambrook.com>
-# @copyright  Copyright (c) 2016 Rick Hambrook
+# @copyright  Copyright (c) 2018 Rick Hambrook
 # @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
 
 
@@ -28,7 +28,7 @@
 # [ ] Enable dumping of sample config from each plugin?
 # [ ] RSYNC: Add excludes list
 
-_SYN_VERSION=0.3
+_SYN_VERSION=0.4
 _SYN_AUTHOR="Rick Hambrook"
 _SYN_WEBSITE="https://www.rickhambrook.com"
 
@@ -800,8 +800,8 @@ function syn_cmd_sync() {
 function main() {
 	# Load and parse everything
 	syn_init
-	syn_load_configs
 	syn_load_plugins
+	syn_load_configs
 	syn_parse_commands
 	syn_parse_plugins
 	syn_parse_parameters "$@"

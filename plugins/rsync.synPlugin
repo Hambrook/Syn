@@ -34,7 +34,6 @@ config[live/rsync/dirs]=\"
 "
 }
 
-
 # rsync plugin defaults
 config[_rsync_flags]="-acEhlrtuz --progress --no-motd"
 # a = archive
