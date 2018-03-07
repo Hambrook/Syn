@@ -27,6 +27,7 @@
 # [ ] Add shorthand parameters?
 # [ ] Enable dumping of sample config from each plugin?
 # [ ] RSYNC: Add excludes list
+# [ ] Allow plugins to output info such as rsync's directories
 
 _SYN_VERSION=0.4
 _SYN_AUTHOR="Rick Hambrook"
@@ -275,12 +276,11 @@ function syn_post_summary() {
 	$(_ bold underline)SYN COMPLETE$(_ r_bold r_underline)
 
 	From:    $(_ bold)%s$(_ r_bold) to $(_ bold)%s$(_ r_bold)
-	File:    %s
 	Plugins: %s
 	Time:    $(_ bold)%s$(_ r_bold)
 	Configs: ${tmp_configs}
 $(_ bg_default)
-" $src $dst "${vars[file]}" "${plugins_str}" "${time_diff_str}"
+" $src $dst "${plugins_str}" "${time_diff_str}"
 
 	# Popup notification
 	if which notify-send >/dev/null; then
