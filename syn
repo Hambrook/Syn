@@ -211,11 +211,28 @@ function syn_confirm() {
 
 # In Array
 function in_array() {
-	local array="$1[@]"
-	local seeking=$2
+	local haystack="$2"
+	haystack="$haystack[@]"
+	local needle=$1
 	local in=1
-	for element in "${!array}"; do
-		if [[ $element == $seeking ]]; then
+	for element in "${!haystack}"; do
+		if [[ $element == $needle ]]; then
+			in=0
+			break
+		fi
+	done
+	return $in
+}
+function in_array_string() {
+	local haystack="$2"
+	if [[ ! "$(declare -p haystack)" =~ "declare -a" ]]; then
+		haystack=($haystack)
+	fi
+	local needle=$1
+	local in=1
+	for element in "${haystack[@]}"; do
+		echo $element
+		if [[ $element == $needle ]]; then
 			in=0
 			break
 		fi

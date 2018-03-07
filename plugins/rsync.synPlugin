@@ -50,12 +50,11 @@ config[_rsync_flags]="-acEhlrtuz --progress --no-motd"
 
 # Flags
 flags[rsync-dryrun]=false
-flags_help[rsync-dryrun]="Show anticipated changed without actually doing them"
+flags_help[rsync-dryrun]="RSYNC: Show anticipated changed without actually doing them"
 
 # Vars
 vars[rsync-only]=""
-vars_help[rsync-only]="Specify dirs to process and ignore others, comma separated"
-
+vars_help[rsync-only]="RSYNC: Specify dirs to process and ignore others (comma separated)"
 
 # Plugin: RSYNC
 function syn_plugin_rsync() {
@@ -66,9 +65,21 @@ function syn_plugin_rsync() {
 	# Defaults
 	: ${config[$dst/$config_key/_flags]:=${config[_rsync_flags]}}
 
-	# Dryrun?
+	# Dry run?
+	local dryrun_triggered_by=""
+	# Has configuration triggered --dry-run?
+	local flags_array=(${config[$dst/$config_key/_flags]})
+	local flags_array_extra=(${config[$dst/$config_key/_flags+]})
 	if ${flags[rsync-dryrun]}; then
 		config[$dst/$config_key/_flags+]="${config[$dst/$config_key/_flags+]} --dry-run"
+		dryrun_triggered_by="\"--rsync-dryrun\" CLI flag"
+	elif in_array "--dry-run" flags_array_extra; then
+		dryrun_triggered_by="\"--dry-run\" in \$config[$dst/$config_key/_flags+]"
+	elif in_array "--dry-run" flags_array; then
+		dryrun_triggered_by="\"--dry-run\" in \$config[$dst/$config_key/_flags]"
+	fi
+	if [[ "$dryrun_triggered_by" ]]; then
+		printf "$(_ bg_yellow)\n\tRSYNC DRY RUN: Actions will be simulated but not executed\n\tTriggered by ${dryrun_triggered_by}\n$(_ reset)\n\n"
 	fi
 
 	# Limit as per parameters
@@ -85,7 +96,7 @@ function syn_plugin_rsync() {
 		(( cnt++ ))
 		local pathinfo=(${file//=/ })
 		if [[ "${pathinfo[1]}" ]]; then
-			if [[ -z $onlydirs ]] || in_array onlydirs "${pathinfo[0]}"; then
+			if [[ -z $onlydirs ]] || in_array "${pathinfo[0]}" onlydirs; then
 				src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
 			fi
 		else
@@ -103,7 +114,7 @@ function syn_plugin_rsync() {
 		(( cnt++ ))
 		local pathinfo=(${file//=/ })
 		if [[ "${pathinfo[1]}" ]]; then
-			if [[ -z $onlydirs ]] || in_array onlydirs "${pathinfo[0]}"; then
+			if [[ -z $onlydirs ]] || in_array "${pathinfo[0]}" onlydirs; then
 				dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
 			fi
 		else
