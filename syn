@@ -333,21 +333,21 @@ function syn_docker_wrap() {
 function syn_render_help_commands() {
 	printf "$(_ bold)Commands:$(_ r_bold)\n"
 	for c in ${!commands[*]}; do
-		printf "  --%-15s %s\n" "$c" "$(${commands[$c]})"
+		printf " --%-15s %s\n" "$c" "$(${commands[$c]})"
 	done
 }
 
 function syn_render_help_flags() {
 	printf "$(_ bold)Flags:$(_ r_bold)\n"
 	for f in ${!flags_help[*]}; do
-		printf "  --%-15s %s\n" "$f" "${flags_help[$f]}"
+		printf " --%-15s %s\n" "$f" "${flags_help[$f]}"
 	done
 }
 
 function syn_render_help_vars() {
 	printf "$(_ bold)Vars:$(_ r_bold)\n"
 	for v in ${!vars_help[*]}; do
-		printf "  --%-15s %s\n" "$v" "${vars_help[$v]}"
+		printf " --%-15s %s\n" "$v" "${vars_help[$v]}"
 	done
 }
 
