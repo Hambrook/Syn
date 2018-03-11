@@ -56,6 +56,35 @@ flags_help[rsync-dryrun]="RSYNC: Show anticipated changed without actually doing
 vars[rsync-only]=""
 vars_help[rsync-only]="RSYNC: Specify dirs to process and ignore others (comma separated)"
 
+
+# Show dirs
+function syn_cmd_rsync-dirs() {
+	printf "RSYNC dirs\n"
+
+	local envs=${environments[*]}
+	if [[ "$src" || "$dst" ]]; then
+		envs=("$src" "$dst")
+	fi
+	for e in ${envs[*]}; do
+		local rsync_dirs=""
+		for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
+			if [[ "$x" == "rsync" ]]; then
+				for d in ${config[$e/$x/dirs]}; do
+					rsync_dirs+="\n  ${d}"
+				done
+			fi
+		done
+		if [[ ! "${rsync_dirs}" ]]; then
+			rsync_dirs="\n  <none>"
+		fi
+		printf "\n$(_ bold)%s$(_ reset)${rsync_dirs}\n" $e
+	done
+}
+function syn_cmd_rsync-dirs_help() {
+	printf "Show available dirs for src, dst, or all environments"
+}
+
+
 # Plugin: RSYNC
 function syn_plugin_rsync() {
 	local config_key=$1

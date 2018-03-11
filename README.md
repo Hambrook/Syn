@@ -1,4 +1,4 @@
-# Syn for environment synchronisation
+# Syn for Environment Synchronisation
 
 Built for website developers to easily synchronise between environments. Pull the database and uploaded files down from live so you're always testing with real data.
 
@@ -57,7 +57,7 @@ For full configuration options for each plugin, use `--help`
 
     $ syn --help rsync
 
-### Plugin aliasing
+### Plugin Aliasing
 
 You can also add aliases to your config files so that you can run the same plugin multiple times with completely different configurations.
 
@@ -66,7 +66,7 @@ Simply put your alphanumeric alias after the plugin name (separated by a period)
     config[live/rsync.web/_flags+]="--chmod=644"
     config[live/rsync.nonweb/_flags+]="--chmod=600"
 
-### Example of multiple configuration files
+### Example of Multiple Configuration Files
 
 You can either put all your environment configs in one file, you can have a few configurations set up such as...
 
@@ -88,7 +88,9 @@ Most variables can handle being surrounded in double quotes, but especially for 
     config[live/mysql/pass]=with\$pecial\;chars
 
 ----
-## Available commands
+## Available Commands
+
+_Note: use `syn --help` to see all vars, flags and more. Even those that aren't listed here._
 
 #### `--actions`
 _Show the actions that are configured for the src, dst, or both_
@@ -102,7 +104,7 @@ _Show all the loaded plugins_
 #### `--help`
 _Show this help (or append a plugin name for specific help, eg "syn --help mysql")_
 
-## Available flags
+## Available Flags
 
 #### `--dryrun`
 _Show the commands that will be used, but don't actually run them_
@@ -110,7 +112,7 @@ _Show the commands that will be used, but don't actually run them_
 #### `--install`
 _Installs Syn to the local path so you can use it simply by typing 'syn'_
 
-## Available vars
+## Available Vars
 
 #### `--file`
 _Specify an additional config file to load (after other attempts). Can be full or relative path, or the name of a file in your SYN_DEFAULT_PATH (see below). This is useful if you aren't storing the syn configuration files in the project folder. You can also use `--file .` to use the current directory name as the filename_
@@ -168,6 +170,14 @@ Will only sync those two directories from the following rsync config
         configs=/root/based/path
         app=/app
     "
+
+### Other RSYNC Tools
+
+#### `--rsync-dirs`
+_List dirs for all or specified environments_
+
+#### `--rsync-dryrun`
+_Show all changes that would be made _without anything actually being changed_
 
 ----
 ## Default Path
