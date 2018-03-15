@@ -200,7 +200,8 @@ function syn_plugin_rsync() {
 				rsync_cmd=$(syn_ssh_wrap "${config[${src}/${config_key}/_ssh]}" "${rsync_cmd}")
 			fi
 			if ${flags[dryrun]}; then
-				printf "%s\n" "$rsync_cmd"
+				# sed 's/[\t ]\+/ /g' # even cleaner but will break if paths have double spaces
+				printf "%s\n" "$rsync_cmd" | sed 's/\t\+/ /g'
 			else
 				eval $rsync_cmd
 			fi
