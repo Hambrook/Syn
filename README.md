@@ -192,6 +192,11 @@ You can specify a default path which Syn will look in (as well as the current di
 No warranty, expressed or implied. Use at your own risk and always keep a fire extinguisher nearby.
 
 ----
+## Credits
+
+Icons made by [Eleonor Wang](https://www.flaticon.com/authors/eleonor-wang) from [Flaticon](https://www.flaticon.com/) and licensed by [CC 3.0](http://creativecommons.org/licenses/by/3.0/).
+
+----
 ## License
 
-Licensed under the [GPL-3.0 license](http://opensource.org/licenses/GPL-3.0)
+Licensed under the [GPL-3.0 license](http://opensource.org/licenses/GPL-3.0).

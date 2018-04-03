@@ -11,6 +11,12 @@
 
 
 # TODO
+# [ ] Docs
+# [ ]   - Overview GIF
+# [ ]   - Quick start (simplest config)
+# [ ]   - RSYNC to separate file
+# [ ] Semantic versioning
+# [ ] "Namespace" everything to a SYN namespace?
 # [ ] Use centralised config file for paths and setting, docker/docker-machine (location optionally configurable via env var)
 # [ ] Add boot2docker support
 # [ ] Add pre-flight validation checks for each plugin
@@ -182,7 +188,8 @@ function syn_init() {
 
 # Exit with an error and a non-successful exit code
 function syn_error() {
-	printf "$(_ red)Error: %s\n" "${1:-"An unknown error has occured"}$(_ reset)" 1>&2
+	local error="${1:-"An unknown error has occured"}"
+	printf "$(_ red)Error: %s\n" "${error}$(_ reset)" 1>&2
 	exit 1
 }
 
@@ -301,7 +308,11 @@ $(_ bg_default)
 
 	# Popup notification
 	if which notify-send >/dev/null; then
-		notify-send "Syn Complete (${time_diff_str})" "${summary_text}"
+		notify-send \
+			--category=transfer.complete \
+			--icon="${real_dir}/assets/icon.png" \
+			"Syn Complete (${time_diff_str})" \
+			"${summary_text}"
 	fi
 }
 
