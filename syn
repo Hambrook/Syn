@@ -302,7 +302,7 @@ function syn_post_summary() {
 	From:    $(_ bold)%s$(_ r_bold) to $(_ bold)%s$(_ r_bold)
 	Plugins: %s
 	Time:    $(_ bold)%s$(_ r_bold)
-	Configs: ${tmp_configs}
+	Config files: ${tmp_configs}
 $(_ bg_default)
 " $src $dst "${plugins_str}" "${time_diff_str}"
 
