@@ -1,0 +1,176 @@
+#
+# BEFORE plugin for Syn
+#
+# Execute commands before other actions are taken.
+#
+# @author     Rick Hambrook <rick@rickhambrook.com>
+# @copyright  Copyright (c) 2018 Rick Hambrook
+# @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
+
+
+# Execution order
+exec_order[before]=10
+
+
+# Vars
+vars[before-only]=""
+vars_help[before-only]="BEFORE: Specify which operations you want to run and ignore others (comma separated)"
+
+
+# Help: BEFORE
+function syn_plugin_before_help() {
+	syn_helper_beforeafter_run_help "before" "BEFORE"
+}
+
+
+# Show commands
+function syn_cmd_before-commands() {
+	syn_helper_beforeafter_commands "before" "BEFORE"
+}
+function syn_cmd_before-commands_help() {
+	printf "Show available commands for src, dst, or all environments"
+}
+
+
+# Plugin: BEFORE
+function syn_plugin_before() {
+	syn_helper_beforeafter_run $1 "before"
+}
+
+#
+# SHARED FUNCTIONS FOR THE BEFORE AND AFTER PLUGINS
+#
+
+function syn_helper_beforeafter_run_help() {
+	local config_key=$1
+	local title=$2
+
+	local example_maintenance="enable"
+	if [[ $config_key == "after" ]]; then
+		example_maintenance="disable"
+	fi
+
+	printf "Run commands on an environment ${config_key} other actions are executed.
+
+Uses a new-line separated list, with key/values separated by '='. Note no trailing slash.
+
+--------------------------------------------------------------------------------
+
+CONFIG
+
+src: List of commands when this environment is the source
+dst: List of commands when this environment is the destination
+_ssh: SSH string for the server run these commands on
+_tunnel: SSH string for a separate server to tunnel through
+
+--------------------------------------------------------------------------------
+
+CONFIG EXAMPLE
+
+    config[live/${config_key}/dst]=\"php /path/to/project/bin mode:maintenance:${example_maintenance}\"
+
+ANOTHER EXAMPLE
+
+    config[live/${config_key}/dst]=\"
+        enable_maintenance=\"php /path/to/project/bin mode:maintenance:${example_maintenance}\"
+        clear_cache=\"php /path/to/project/bin cache:clear\"
+"
+}
+
+function syn_helper_beforeafter_run() {
+	local config_key=$1
+	local flag_key=$2
+
+	# Limit as per parameters
+	local onlycommands=""
+	if [[ "${vars[${flag_key}-only]}" ]]; then
+		onlycommands=(${vars[${flag_key}-only]//,/ })
+	fi
+
+	declare -A loop_envs=( [src]="${src}" [dst]="${dst}" )
+
+	for k in "${!loop_envs[@]}"; do
+		local env_type="${k}" # src
+		local env_key="${loop_envs[$k]}" # staging
+
+		# Source
+		IFS=$'\n' read -rd '' -a lines <<<"${config[${env_key}/${config_key}/${env_type}]}"
+		for line in "${lines[@]}"; do
+			after_cmd=""
+
+			# Extract the command
+			IFS=$'=' read -rd '' -a lineparts <<<"${line}"
+			if [[ "${lineparts[1]}" ]]; then
+				linekey="$(echo -e "${lineparts[0]}" | sed -e 's/^[[:space:]]*//')"
+				if [[ -z $onlycommands ]] || in_array "${linekey}" onlycommands; then
+					# the string might have had multiple "=" in it, join them back up
+					after_cmd=$(join "=" "${lineparts[@]:1}")
+				fi
+			else
+				after_cmd="${lineparts[0]}"
+			fi
+
+			if [[ ! "${after_cmd}" ]]; then
+				return
+			fi
+
+			# Should this be sent to a docker container?
+			if [[ "${config[${env_key}/${config_key}/_docker]}" ]]; then
+				after_cmd=$(syn_docker_wrap "${config[${env_key}/${config_key}/_docker]}" "${after_cmd}")
+			fi
+
+			# Should this be over SSH?
+			if [[ "${config[${env_key}/${config_key}/_ssh]}" ]]; then
+				after_cmd=$(syn_ssh_wrap "${config[${env_key}/${config_key}/_ssh]}" "${after_cmd}")
+			fi
+
+			# Finish up
+			if ${flags[dryrun]}; then
+				printf "%s\n" "${after_cmd}"
+			else
+				eval $after_cmd
+			fi
+		done
+	done
+}
+
+
+# Show commands
+function syn_helper_beforeafter_commands() {
+	local config_key=$1
+	local title=$2
+
+	printf "{$title} commands\n"
+
+	local envs=${environments[*]}
+	if [[ "$src" || "$dst" ]]; then
+		envs=("$src" "$dst")
+	fi
+	
+	for e in ${envs[*]}; do
+		# SRC
+		local commands_src=""
+		IFS=$'\n' read -rd '' -a lines <<<"${config[${e}/${config_key}/src]}"
+		for line in "${lines[@]}"; do
+			# remove leading whitespace
+			line="$(echo -e "${line}" | sed -e 's/^[[:space:]]*//')"
+			commands_src+="\n    ${line}"
+		done
+		if [[ ! "${commands_src}" ]]; then
+			commands_src="\n    <none>"
+		fi
+
+		# DST
+		local commands_dst=""
+		IFS=$'\n' read -rd '' -a lines <<<"${config[${e}/${config_key}/dst]}"
+		for line in "${lines[@]}"; do
+			# remove leading whitespace
+			line="$(echo -e "${line}" | sed -e 's/^[[:space:]]*//')"
+			commands_dst+="\n    ${line}"
+		done
+		if [[ ! "${commands_dst}" ]]; then
+			commands_dst="\n    <none>"
+		fi
+		printf "\n$(_ bold)%s$(_ reset)\n  SRC${commands_src}\n  DST${commands_dst}\n" $e
+	done
+}

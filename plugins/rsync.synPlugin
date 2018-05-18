@@ -1,3 +1,13 @@
+#
+# RSYNC plugin for Syn
+#
+# Copy files between locations and environments.
+#
+# @author     Rick Hambrook <rick@rickhambrook.com>
+# @copyright  Copyright (c) 2018 Rick Hambrook
+# @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
+
+
 # Help: RSYNC
 function syn_plugin_rsync_help() {
 	printf "Synchronise files from one location to another using rsync
@@ -34,6 +44,9 @@ config[live/rsync/dirs]=\"
 "
 }
 
+# Execution order (defaults to 50 for each plugin if not set)
+exec_order[rsync]=51
+
 # rsync plugin defaults
 config[_rsync_flags]="-acEhlrtuz --progress --no-motd"
 # a = archive
@@ -67,12 +80,8 @@ function syn_cmd_rsync-dirs() {
 	fi
 	for e in ${envs[*]}; do
 		local rsync_dirs=""
-		for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
-			if [[ "$x" == "rsync" ]]; then
-				for d in ${config[$e/$x/dirs]}; do
-					rsync_dirs+="\n  ${d}"
-				done
-			fi
+		for d in ${config[$e/rsync/dirs]}; do
+			rsync_dirs+="\n  ${d}"
 		done
 		if [[ ! "${rsync_dirs}" ]]; then
 			rsync_dirs="\n  <none>"

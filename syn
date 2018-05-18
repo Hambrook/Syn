@@ -4,7 +4,7 @@
 #
 # Easily synchronise website content (database and asset files) between environments
 #
-# @version    0.4
+# @version    0.5
 # @author     Rick Hambrook <rick@rickhambrook.com>
 # @copyright  Copyright (c) 2018 Rick Hambrook
 # @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
@@ -24,18 +24,14 @@
 # [ ]   - ssh connection works (maybe, might cause too many connections)
 # [ ]   - docker container exists
 # [ ]   - docker container on ssh host is accessible and exists
-# [ ] Add timing report
-# [ ] Add colours to output
 # [ ] Check all quotes and escape sequences
 # [ ] See if there is an easier to way merge defaults with supplied values
-# [ ] RSYNC: Find a better way to define file paths
 # [ ] Maybe load a single location as global config, maybe ~/.syn/config
 # [ ] Add shorthand parameters?
 # [ ] Enable dumping of sample config from each plugin?
 # [ ] RSYNC: Add excludes list
-# [ ] Allow plugins to output info such as rsync's directories
 
-_SYN_VERSION=0.4
+_SYN_VERSION=0.5
 _SYN_AUTHOR="Rick Hambrook"
 _SYN_WEBSITE="https://www.rickhambrook.com"
 
@@ -50,7 +46,9 @@ declare local_root=""
 declare -A actions
 declare -A commands
 declare -A environments
-declare -A plugins
+declare -a plugins      # ordered alphabetically
+declare -a plugins_exec # ordered for execution
+declare -A exec_order
 declare exec_path="${BASH_SOURCE[0]}"
 declare real_path
 declare real_dir
@@ -82,7 +80,7 @@ declare -A vars=(
 )
 declare -A vars_help=(
 	[file]="Specify a config file to load (after other attempts)"
-	[only]="Select only the actions you want to take, comma separated"
+	[only]="Select only the actions you want to take (comma separated)"
 )
 
 # Formatting vars
@@ -250,6 +248,11 @@ function in_array_string() {
 # Check if an array key exists
 function array_key_exists() {
 	eval '[ ${'$2'[$1]+muahaha} ]'
+}
+
+# Check if an array key exists
+function join() {
+	local IFS="$1"; shift; echo "$*"
 }
 
 # Check if a plugin exists
@@ -474,14 +477,12 @@ function syn_cmd_paths_help() {
 
 # Show plugins
 function syn_cmd_plugins() {
-	local plgs=""
-	for p in ${plugins[*]}; do
-		plgs+="\n  ${p}"
-	done
-	if [[ ! "${plgs}" ]]; then
-		plgs="\n  <none>"
+	printf "$(_ bold)Loaded Plugins:$(_ r_bold)\n"
+	if (( ${#plugins[@]} > 0 )); then
+		printf '  %s\n' "${plugins[@]}"
+	else
+		printf "  <none>\n"
 	fi
-	printf "$(_ bold)Loaded Plugins:$(_ r_bold)${plgs}\n"
 }
 function syn_cmd_plugins_help() {
 	printf "List all available plugins"
@@ -612,16 +613,33 @@ function syn_load_plugins() {
 
 # Show requested actions
 function syn_parse_actions() {
+	declare -A tmp
+
+	# List all actions if none are specifically requested
 	if [[ "${vars[only]}" == "" ]]; then
-		declare -A tmp
 		local pattern="^[^/]+/([^_][^/]+)"
 		for p in "${!config[@]}"; do
 			if [[ $p =~ $pattern ]]; then
 				: ${tmp[${BASH_REMATCH[1]}]:=${BASH_REMATCH[1]}}
 			fi
 		done
-		vars[only]=${tmp[*]}
+	else
+		# Actions were set at the command line, comma separated
+		tmp=${vars[only]/,/ }
 	fi
+
+	# Wipe it out so we can add them back, in execution order
+	vars[only]=""
+
+	# Need to sort by plugin exec order
+	for p in ${plugins_exec[@]}; do
+		local pattern="^(${p}([^a-zA-Z0-9]+.*)?)"
+		for k in ${tmp[@]}; do
+			if [[ $k =~ $pattern ]]; then
+				vars[only]="${vars[only]} ${k}"
+			fi
+		done
+	done
 }
 
 # Get the available plugins
@@ -685,11 +703,28 @@ function syn_parse_parameters() {
 
 # Get the available plugins
 function syn_parse_plugins() {
-	plugins=""
+	plugins=()
+	plugins_exec=()
+	declare -A plugins_raw
 	for p in $(compgen -A function syn_plugin_); do
-		if [[ ! $p =~ _help$ ]]; then
-			plugins="${plugins} ${p//syn_plugin_/ }"
+		if [[ $p =~ _help$ ]]; then
+			continue
 		fi
+		local plugin_name="${p//syn_plugin_/}"
+		local plugin_key="${exec_order[${plugin_name}]}"
+		if [[ ! "$plugin_key" ]]; then
+			plugin_key=50
+		fi
+		plugins+=("${plugin_name}")
+		plugin_key="${plugin_key}_${plugin_name}"
+		plugins_raw[${plugin_key}]="${plugin_name}"
+	done
+
+	local indexes=(${!plugins_raw[@]})
+	IFS=$'\n' sorted=($(sort <<<"${indexes[*]}"))
+	unset IFS
+	for k in "${sorted[@]}"; do
+		plugins_exec+=("${plugins_raw[$k]}")
 	done
 }
 
