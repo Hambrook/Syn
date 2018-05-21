@@ -111,7 +111,7 @@ function syn_helper_beforeafter_run() {
 			fi
 
 			if [[ ! "${after_cmd}" ]]; then
-				return
+				continue
 			fi
 
 			# Should this be sent to a docker container?
