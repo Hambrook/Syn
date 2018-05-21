@@ -43,15 +43,13 @@ declare plugin_cnt
 declare config_cnt
 declare config_files=""
 declare local_root=""
-declare -A actions
+#declare -A actions
 declare -A commands
 declare -A environments
 declare -a plugins      # ordered alphabetically
 declare -a plugins_exec # ordered for execution
 declare -A exec_order
-declare exec_path="${BASH_SOURCE[0]}"
-declare real_path
-declare real_dir
+declare app_dir
 declare plugin_dir_builtin
 declare plugin_dir_custom
 declare default_config_dir
@@ -167,13 +165,13 @@ function _() {
 
 # Initialise a few paths etc
 function syn_init() {
-	real_path="${exec_path}"
-	if [[ -L "${exec_path}" ]]; then
-		real_path="$(readlink "${exec_path}")"
+	local real_path="${BASH_SOURCE[0]}"
+	if [[ -L "${real_path}" ]]; then
+		real_path="$(readlink "${real_path}")"
 	fi
-	real_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
+	app_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
 
-	plugin_dir_builtin="${real_dir}/plugins"
+	plugin_dir_builtin="${app_dir}/plugins"
 
 	if [[ "${SYN_PLUGIN_PATH}" && -d "${SYN_PLUGIN_PATH}" ]]; then
 		plugin_dir_custom="${SYN_PLUGIN_PATH}"
@@ -313,7 +311,7 @@ $(_ bg_default)
 	if which notify-send >/dev/null; then
 		notify-send \
 			--category=transfer.complete \
-			--icon="${real_dir}/assets/icon.png" \
+			--icon="${app_dir}/assets/icon.png" \
 			"Syn Complete (${time_diff_str})" \
 			"${summary_text}"
 	fi
@@ -347,21 +345,21 @@ function syn_docker_wrap() {
 function syn_render_help_commands() {
 	printf "$(_ bold)Commands:$(_ r_bold)\n"
 	for c in ${!commands[*]}; do
-		printf " --%-15s %s\n" "$c" "$(${commands[$c]})"
+		printf "  --%-16s %s\n" "$c" "$(${commands[$c]})"
 	done
 }
 
 function syn_render_help_flags() {
 	printf "$(_ bold)Flags:$(_ r_bold)\n"
 	for f in ${!flags_help[*]}; do
-		printf " --%-15s %s\n" "$f" "${flags_help[$f]}"
+		printf "  --%-16s %s\n" "$f" "${flags_help[$f]}"
 	done
 }
 
 function syn_render_help_vars() {
 	printf "$(_ bold)Vars:$(_ r_bold)\n"
 	for v in ${!vars_help[*]}; do
-		printf " --%-15s %s\n" "$v" "${vars_help[$v]}"
+		printf "  --%-16s %s\n" "$v" "${vars_help[$v]}"
 	done
 }
 
@@ -386,8 +384,8 @@ for mysql and rsync.
 Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]
 
 $(_ bold)Parameters:$(_ r_bold)
-  SRC               Must match an environment from the loaded config files
-  DST               Must match an environment from the loaded config files
+  SRC                Must match an environment from the loaded config files
+  DST                Must match an environment from the loaded config files
 
 $(syn_render_help_commands)
 
@@ -491,6 +489,9 @@ function syn_cmd_plugins_help() {
 # Show configuration files
 function syn_cmd_configs() {
 	printf "$(_ bold)Loaded Configs:$(_ r_bold)%s\n" "${config_files//"\n"/"\n  "}"
+	if [[ "${config_files[@]}" = "" ]]; then
+		printf "  <none>"
+	fi
 }
 function syn_cmd_configs_help() {
 	printf "List all available configuration files"
@@ -611,7 +612,7 @@ function syn_load_plugins() {
 # PARSE LOADED DATA
 ################################################################################
 
-# Show requested actions
+# List all or requested actions (eg --only rsync,after)
 function syn_parse_actions() {
 	declare -A tmp
 

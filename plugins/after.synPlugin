@@ -33,5 +33,5 @@ function syn_cmd_after-commands_help() {
 
 # Plugin: AFTER
 function syn_plugin_after() {
-	syn_helper_beforeafter_run $1 "after"
+	syn_helper_beforeafter_run $1 "after" "After"
 }

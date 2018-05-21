@@ -34,7 +34,7 @@ function syn_cmd_before-commands_help() {
 
 # Plugin: BEFORE
 function syn_plugin_before() {
-	syn_helper_beforeafter_run $1 "before"
+	syn_helper_beforeafter_run $1 "before" "Before"
 }
 
 #
@@ -80,6 +80,7 @@ ANOTHER EXAMPLE
 function syn_helper_beforeafter_run() {
 	local config_key=$1
 	local flag_key=$2
+	local case_title=$3
 
 	# Limit as per parameters
 	local onlycommands=""
@@ -96,7 +97,8 @@ function syn_helper_beforeafter_run() {
 		# Source
 		IFS=$'\n' read -rd '' -a lines <<<"${config[${env_key}/${config_key}/${env_type}]}"
 		for line in "${lines[@]}"; do
-			after_cmd=""
+			local action_command=""
+			local linekey="<unnamed action>"
 
 			# Extract the command
 			IFS=$'=' read -rd '' -a lineparts <<<"${line}"
@@ -104,31 +106,36 @@ function syn_helper_beforeafter_run() {
 				linekey="$(echo -e "${lineparts[0]}" | sed -e 's/^[[:space:]]*//')"
 				if [[ -z $onlycommands ]] || in_array "${linekey}" onlycommands; then
 					# the string might have had multiple "=" in it, join them back up
-					after_cmd=$(join "=" "${lineparts[@]:1}")
+					action_command=$(join "=" "${lineparts[@]:1}")
 				fi
 			else
-				after_cmd="${lineparts[0]}"
+				action_command="${lineparts[0]}"
 			fi
 
-			if [[ ! "${after_cmd}" ]]; then
+			if [[ ! "${action_command}" ]]; then
 				continue
 			fi
 
 			# Should this be sent to a docker container?
 			if [[ "${config[${env_key}/${config_key}/_docker]}" ]]; then
-				after_cmd=$(syn_docker_wrap "${config[${env_key}/${config_key}/_docker]}" "${after_cmd}")
+				action_command=$(syn_docker_wrap "${config[${env_key}/${config_key}/_docker]}" "${action_command}")
 			fi
 
 			# Should this be over SSH?
 			if [[ "${config[${env_key}/${config_key}/_ssh]}" ]]; then
-				after_cmd=$(syn_ssh_wrap "${config[${env_key}/${config_key}/_ssh]}" "${after_cmd}")
+				action_command=$(syn_ssh_wrap "${config[${env_key}/${config_key}/_ssh]}" "${action_command}")
 			fi
 
 			# Finish up
 			if ${flags[dryrun]}; then
-				printf "%s\n" "${after_cmd}"
+				printf "[PREVIEW] %s: $(_ bold)%s$(_ reset)\n" "${case_title}" "${linekey}"
+				printf "$(_ lightgray bg_darkgray)\n\t%s\n$(_ reset)\n\n" "${action_command}"
 			else
-				eval $after_cmd
+				printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title}" "${linekey}"
+				printf "$(_ lightgray bg_darkgray)\n"
+				eval $action_command
+				printf "$(_ reset)\n"
+				printf "%s: $(_ bold)%s [DONE]\n$(_ reset)\n" "${i}"
 			fi
 		done
 	done

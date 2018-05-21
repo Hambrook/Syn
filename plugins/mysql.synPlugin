@@ -167,9 +167,14 @@ function syn_plugin_mysql() {
 
 		# Finish up
 		if ${flags[dryrun]}; then
-			printf "%s | %s" "$cmdSrc" "$cmdDst"
+			printf "[PREVIEW] MySQL...\n"
+			printf "$(_ lightgray bg_darkgray)\n\t%s | %s\n$(_ reset)\n\n" "$cmdSrc" "$cmdDst"
 		else
+			printf "MySQL...\n"
+			printf "$(_ lightgray bg_darkgray)\n"
 			eval $cmdSrc | $cmdDst
+			printf "$(_ reset)\n"
+			printf "MySQL $(_ bold)[DONE]$(_ reset)\n"
 		fi
 
 	done

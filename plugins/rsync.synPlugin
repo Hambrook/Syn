@@ -210,9 +210,15 @@ function syn_plugin_rsync() {
 			fi
 			if ${flags[dryrun]}; then
 				# sed 's/[\t ]\+/ /g' # even cleaner but will break if paths have double spaces
-				printf "%s\n" "$rsync_cmd" | sed 's/\t\+/ /g'
+				rsync_cmd=$(printf "$rsync_cmd" | sed 's/\t\+/ /g')
+				printf "[PREVIEW] Rsync: $(_ bold)%s$(_ reset)\n" "${i}"
+				printf "$(_ lightgray bg_darkgray)\n\t%s$(_ reset)\n\n" "$rsync_cmd"
 			else
+				printf "Rsync: $(_ bold)%s$(_ reset)...\n" "${i}"
+				printf "$(_ lightgray bg_darkgray)\n"
 				eval $rsync_cmd
+				printf "$(_ reset)\n"
+				printf "Rsync: $(_ bold)%s$(_ reset) [DONE]\n\n" "${i}"
 			fi
 		fi
 	done
