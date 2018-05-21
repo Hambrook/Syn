@@ -133,8 +133,15 @@ function syn_plugin_rsync() {
 	for file in ${config[$src/$config_key/dirs]}; do
 		(( cnt++ ))
 		local pathinfo=(${file//=/ })
+		local on_default=true
 		if [[ "${pathinfo[1]}" ]]; then
-			if [[ -z $onlydirs ]] || in_array "${pathinfo[0]}" onlydirs; then
+			if [ "${pathinfo[0]:0:1}" == "!" ]; then
+				pathinfo[0]="${pathinfo[0]:1}"
+				on_default=false
+			fi
+			if [ -z $onlydirs ] && [ $on_default == true ]; then
+				src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+			elif in_array "${pathinfo[0]}" onlydirs; then
 				src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
 			fi
 		else

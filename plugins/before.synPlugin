@@ -99,12 +99,20 @@ function syn_helper_beforeafter_run() {
 		for line in "${lines[@]}"; do
 			local action_command=""
 			local linekey="<unnamed action>"
+			local on_default=true
 
 			# Extract the command
 			IFS=$'=' read -rd '' -a lineparts <<<"${line}"
 			if [[ "${lineparts[1]}" ]]; then
 				linekey="$(echo -e "${lineparts[0]}" | sed -e 's/^[[:space:]]*//')"
-				if [[ -z $onlycommands ]] || in_array "${linekey}" onlycommands; then
+				if [ "${linekey:0:1}" == "!" ]; then
+					linekey="${linekey:1}"
+					on_default=false
+				fi
+				if [ -z $onlycommands ] && [ $on_default == true ]; then
+					# the string might have had multiple "=" in it, join them back up
+					action_command=$(join "=" "${lineparts[@]:1}")
+				elif in_array "${linekey}" onlycommands; then
 					# the string might have had multiple "=" in it, join them back up
 					action_command=$(join "=" "${lineparts[@]:1}")
 				fi
