@@ -12,26 +12,24 @@
 exec_order[after]=99
 
 
-# Help: AFTER
-function syn_plugin_after_help() {
-	syn_helper_beforeafter_run_help "after" "AFTER"
-}
-
-
 # Vars
 vars[after-only]=""
 vars_help[after-only]="AFTER: Specify which operations you want to run and ignore others (comma separated)"
 
 
-# Show commands
-function syn_cmd_after-commands() {
-	syn_helper_beforeafter_commands "after" "AFTER"
-}
-function syn_cmd_after-commands_help() {
-	printf "Show available commands for src, dst, or all environments"
-}
-
 # Plugin: AFTER
 function syn_plugin_after() {
 	syn_helper_beforeafter_run $1 "after" "After"
 }
+function syn_plugin_after_help() {
+	syn_helper_beforeafter_run_help "after" "AFTER"
+}
+
+# Show commands
+function syn_cmd_after-list() {
+	syn_helper_beforeafter_commands "after" "AFTER"
+}
+function syn_cmd_after-list_help() {
+	printf "Show available commands for src, dst, or all environments"
+}
+

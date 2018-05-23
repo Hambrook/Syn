@@ -71,7 +71,7 @@ vars_help[rsync-only]="RSYNC: Specify dirs to process and ignore others (comma s
 
 
 # Show dirs
-function syn_cmd_rsync-dirs() {
+function syn_cmd_rsync-list() {
 	printf "RSYNC dirs\n"
 
 	local envs=${environments[*]}
@@ -89,7 +89,7 @@ function syn_cmd_rsync-dirs() {
 		printf "\n$(_ bold)%s$(_ reset)${rsync_dirs}\n" $e
 	done
 }
-function syn_cmd_rsync-dirs_help() {
+function syn_cmd_rsync-list_help() {
 	printf "Show available dirs for src, dst, or all environments"
 }
 

@@ -38,8 +38,8 @@ Create a `.syn` file in your project root
     config[live/mysql/user]=LIVEUSER
     config[live/mysql/pass]=LIVEPASS
     config[live/rsync/dirs]="
-        a=b
-        foo=bar/sub
+        a=/absolute/path
+        foo=relative/path
         anotherpath
     "
 
@@ -48,9 +48,9 @@ Create a `.syn` file in your project root
     #default user/pass of root/root will be used for db if not specified
     config[local/rsync/_docker]=my_container_name
     config[local/rsync/dirs]="
-        a=c
-        foo=baz/sub
-        anotherotherpath
+        a=dev/c
+        foo=dev/baz/sub
+        dev/anotherotherpath
     "
 
 For full configuration options for each plugin, use `--help`
@@ -166,18 +166,56 @@ The rsync plugin now includes a new `--rsync-only` parameter that will let you c
 Will only sync those two directories from the following rsync config
 
     config[live/rsync/dirs]="
-        uploads=~/path/to/dir
+        uploads=path/to/dir
         configs=/root/based/path
-        app=/app
+        !app=/app
     "
 
 ### Other RSYNC Tools
 
-#### `--rsync-dirs`
+#### `--rsync-list`
 _List dirs for all or specified environments_
 
 #### `--rsync-dryrun`
 _Show all changes that would be made _without anything actually being changed_
+
+----
+## BEFORE/AFTER Plugins
+
+The `before` and `after` plugins allow you to run commands before or after all the other plugins.
+
+    config[live/before/dst]="
+        maintenance_on=php path/to/script maintenance_mode:enable
+    "
+    config[live/after/dst]="
+        !build=php path/to/script tasks:build
+        maintenance_off=php path/to/script maintenance_mode:disable
+    "
+
+This configuration would enable maintenance mode before pushing to `live` when it is the `dst` (destination) environment, and then revert it to normal afterwards. See below for info on the `!` prefix.
+
+You can use `--after-list` and `--after-only` etc, just like the `rsync` plugin.
+
+### Other RSYNC Tools
+
+#### `--rsync-list`
+_List dirs for all or specified environments_
+
+#### `--rsync-dryrun`
+_Show all changes that would be made _without anything actually being changed_
+
+----
+## `!` Prefix
+
+Some plugins that list named items (such as `rysnc` dirs or `after` commands) support the `!` prefix on the item name.
+
+    config[live/rsync/dirs]="
+        uploads=path/to/dir
+        configs=/root/based/path
+        !app=/app
+    "
+
+The `!` means that this dir will not be processed unless explicitly told to by `--rsync-only`. So you you simply run `syn local staging` then the `rsync` plugin will process the `uploads` and `configs` dir. If you want the `app` dir too, you'll need to use `--rsync-only uploads,config,app`.
 
 ----
 ## Default Path

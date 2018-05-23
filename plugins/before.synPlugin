@@ -17,7 +17,10 @@ vars[before-only]=""
 vars_help[before-only]="BEFORE: Specify which operations you want to run and ignore others (comma separated)"
 
 
-# Help: BEFORE
+# Plugin: BEFORE
+function syn_plugin_before() {
+	syn_helper_beforeafter_run $1 "before" "Before"
+}
 function syn_plugin_before_help() {
 	syn_helper_beforeafter_run_help "before" "BEFORE"
 }
@@ -29,12 +32,6 @@ function syn_cmd_before-commands() {
 }
 function syn_cmd_before-commands_help() {
 	printf "Show available commands for src, dst, or all environments"
-}
-
-
-# Plugin: BEFORE
-function syn_plugin_before() {
-	syn_helper_beforeafter_run $1 "before" "Before"
 }
 
 #
@@ -155,7 +152,7 @@ function syn_helper_beforeafter_commands() {
 	local config_key=$1
 	local title=$2
 
-	printf "{$title} commands\n"
+	printf "${title} commands\n"
 
 	local envs=${environments[*]}
 	if [[ "$src" || "$dst" ]]; then
