@@ -27,12 +27,19 @@ function syn_plugin_before_help() {
 
 
 # Show commands
-function syn_cmd_before-commands() {
-	syn_helper_beforeafter_commands "before" "BEFORE"
+function syn_cmd_before-list() {
+	syn_helper_beforeafter_list "before" "BEFORE"
 }
-function syn_cmd_before-commands_help() {
+function syn_cmd_before-list_help() {
 	printf "Show available commands for src, dst, or all environments"
 }
+
+
+# Autocomplete for vars
+function syn_var_before-only_complete() {
+	syn_helper_beforeafter_only_complete "before" "${1}"
+}
+
 
 #
 # SHARED FUNCTIONS FOR THE BEFORE AND AFTER PLUGINS
@@ -148,7 +155,7 @@ function syn_helper_beforeafter_run() {
 
 
 # Show commands
-function syn_helper_beforeafter_commands() {
+function syn_helper_beforeafter_list() {
 	local config_key=$1
 	local title=$2
 
@@ -158,7 +165,7 @@ function syn_helper_beforeafter_commands() {
 	if [[ "$src" || "$dst" ]]; then
 		envs=("$src" "$dst")
 	fi
-	
+
 	for e in ${envs[*]}; do
 		# SRC
 		local commands_src=""
@@ -185,4 +192,12 @@ function syn_helper_beforeafter_commands() {
 		fi
 		printf "\n$(_ bold)%s$(_ reset)\n  SRC${commands_src}\n  DST${commands_dst}\n" $e
 	done
+}
+
+
+# Autocomplete
+function syn_helper_beforeafter_only_complete() {
+	local config_key=$1
+	syn_autocomplete_kv_field "${src}/${config_key}/src" "${2}"
+	syn_autocomplete_kv_field "${dst}/${config_key}/dst" "${2}"
 }

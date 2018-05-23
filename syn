@@ -4,7 +4,7 @@
 #
 # Easily synchronise website content (database and asset files) between environments
 #
-# @version    0.5
+# @version    0.6
 # @author     Rick Hambrook <rick@rickhambrook.com>
 # @copyright  Copyright (c) 2018 Rick Hambrook
 # @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
@@ -31,7 +31,7 @@
 # [ ] Enable dumping of sample config from each plugin?
 # [ ] RSYNC: Add excludes list
 
-_SYN_VERSION=0.5
+_SYN_VERSION=0.6
 _SYN_AUTHOR="Rick Hambrook"
 _SYN_WEBSITE="https://www.rickhambrook.com"
 
@@ -43,7 +43,7 @@ declare plugin_cnt
 declare config_cnt
 declare config_files=""
 declare local_root=""
-#declare -A actions
+declare autocomplete=false
 declare -A commands
 declare -A environments
 declare -a plugins      # ordered alphabetically
@@ -75,6 +75,8 @@ declare -A flags_help=(
 declare -A vars=(
 	[file]=""
 	[only]=""
+	[autocomplete-current]=""
+	[autocomplete-previous]=""
 )
 declare -A vars_help=(
 	[file]="Specify a config file to load (after other attempts)"
@@ -214,18 +216,16 @@ function syn_confirm() {
 
 # In Array
 function in_array() {
-	local haystack="$2"
-	haystack="${haystack[@]}"
-	local needle=$1
-	local in=1
-	for element in "${!haystack}"; do
-		if [[ $element == $needle ]]; then
-			in=0
-			break
+	local haystack=${2}[@]
+	local needle=${1}
+	for i in ${!haystack}; do
+		if [[ ${i} == ${needle} ]]; then
+			return 0
 		fi
 	done
-	return $in
+	return 1
 }
+# Alternate version
 function in_array_string() {
 	local haystack="$2"
 	if [[ ! "$(declare -p haystack)" =~ "declare -a" ]]; then
@@ -243,12 +243,58 @@ function in_array_string() {
 	return $in
 }
 
+# Check if a function exists
+function function_exists() {
+	declare -f -F $1 > /dev/null
+	return $?
+}
+
+# Autocomplete for vars
+function syn_autocomplete_kv_field() {
+	local config_key="${1}"
+	declare -a valid_existing
+	declare -a suggestions
+
+	IFS=$',' read -rd '' -a existing <<<"${2}"
+
+	IFS=$'\n' read -rd '' -a lines <<<"${config[${config_key}]}"
+	for line in "${lines[@]}"; do
+		local linekey=""
+		# Extract the linekey
+		IFS=$'=' read -rd '' -a lineparts <<<"${line}"
+		if [[ "${lineparts[1]}" ]]; then
+			linekey="$(echo -e "${lineparts[0]}" | sed -e 's/^[[:space:]]*//')"
+			if [ "${linekey:0:1}" == "!" ]; then
+				linekey="${linekey:1}"
+			fi
+			suggestions+=("${linekey}")
+		fi
+	done
+	for linekey in "${existing[@]}"; do
+		if in_array "${linekey}" suggestions; then
+			valid_existing+=("${linekey}")
+		fi
+	done
+
+	prefix=$(join "," "${valid_existing[@]}")
+	for k in "${!suggestions[@]}"; do
+		if in_array "${suggestions[${k}]}" existing; then
+			unset "${suggestions[${k}]}"
+		elif [[ "${#valid_existing[@]}" == 0 ]]; then
+			echo "${suggestions[${k}]}"
+		else
+			echo $prefix,"${suggestions[${k}]}"
+		fi
+	done
+}
+
+
 # Check if an array key exists
 function array_key_exists() {
 	eval '[ ${'$2'[$1]+muahaha} ]'
 }
 
-# Check if an array key exists
+# Join array elements together
 function join() {
 	local IFS="$1"; shift; echo "$*"
 }
@@ -499,6 +545,12 @@ function syn_cmd_configs_help() {
 
 # Install the thing
 function syn_cmd_install() {
+	if [[ ! -L "/etc/bash_completion.d/syn" ]]; then
+		sudo ln -s "${app_dir}/other/syncomplete.bash" "/etc/bash_completion.d/syn"
+		if [[ -L "${BASH_SOURCE[0]}" ]]; then
+			printf "Bash completion file added. Try it out!\n"
+		fi
+	fi
 	if [[ -L "${BASH_SOURCE[0]}" ]]; then
 		syn_error "Syn is already installed as a SymLink."
 	fi
@@ -666,6 +718,11 @@ function syn_parse_environments() {
 
 # Parameter loading
 function syn_parse_parameters() {
+	if [[ $1 == "__AUTOCOMPLETE__" ]]; then
+		autocomplete=true
+		shift
+	fi
+
 	# Tried a switch statement, this more efficient
 	for (( i=1; i<=$#; i++ )); do
 		# Strip leading dashes and test for flags, commands and vars
@@ -693,10 +750,10 @@ function syn_parse_parameters() {
 				src="${!i}"
 			elif [[ ! "$dst" ]]; then
 				dst="${!i}"
-			else
+			elif [[ $autocomplete == false ]]; then
 				syn_error "Unrecognised parameter '${!i}'"
 			fi
-		else
+		elif [[ $autocomplete == false ]]; then
 			syn_error "Unrecognised parameter '${!i}'"
 		fi
 	done
@@ -872,12 +929,49 @@ function main() {
 	syn_load_config_specific
 	syn_parse_environments
 	syn_parse_actions
+	syn_check_autocomplete_request "$@"
 	syn_check_help_request "$@"
 
 	# Do the chosen command
 	eval "syn_cmd_${cmd}"
 
 	# Let's get out of here
+	exit
+}
+
+function syn_check_autocomplete_request() {
+	
+	if [[ $autocomplete == false ]]; then
+		return
+	fi
+
+	local current="${vars[autocomplete-current]}"
+	local previous="${vars[autocomplete-previous]}"
+
+	# Suggest values for the current --var
+	if [[ "${previous}" ]]; then
+		for v in "${!vars[@]}"; do
+			if [[ "${previous}" == "--${v}" ]]; then
+				# syn_var_after-only_complete
+				local f="syn_var_${v}_complete"
+				if function_exists "${f}"; then
+					eval "${f}" "${current}"
+				fi
+				exit
+			fi
+		done
+	fi
+
+	# Print environments if they're not already set
+	if [[ -z $dst ]]; then
+		printf "%s " "${environments[@]}"
+	fi
+
+	# todo: Remove flags/commands/vars that are already part of the command
+	printf "\-\-%s " "${!flags_help[@]}"
+	printf "\-\-%s " "${!commands[@]}"
+	printf "\-\-%s " "${!vars_help[@]}"
+
 	exit
 }
 

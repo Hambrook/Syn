@@ -27,9 +27,13 @@ function syn_plugin_after_help() {
 
 # Show commands
 function syn_cmd_after-list() {
-	syn_helper_beforeafter_commands "after" "AFTER"
+	syn_helper_beforeafter_list "after" "AFTER"
 }
 function syn_cmd_after-list_help() {
 	printf "Show available commands for src, dst, or all environments"
 }
 
+# Show complete
+function syn_var_after-only_complete() {
+	syn_helper_beforeafter_only_complete "after" "${1}"
+}

@@ -2,14 +2,16 @@
 
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
-### [_next release_]
+### [0.6.0] 2018-05-24
 
 ###### Added
 
+- Add **CLI TAB COMPLETION**. Full tab completion. And if you put a comma at the end of a var property, it'll suggest the other vars too... eg `--rsync-only dir1,` will suggest `dir1,dir2` and `dir1,dir3`. Use `--install` to install the bash tab completion file to your system.
 - [after] Add `after` plugin for running commands after other actions (also supports `!` prefix like `rsync`)
 - [before] Add `before` plugin for running commands before other actions (also supports `!` prefix like `rsync`)
 - [core] Add more colours to output (eg plugin output is on grey)
 - [rsync] Prefix `!` to the name of a dir to have it not included by default (eg `!uploads=path/to/dir`)
+- [core] Added lots of bugs to find later
 
 ###### Fixed
 
@@ -21,7 +23,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ###### Added
 
-- Add changelog (this thing)
+- [docs] Add changelog (this thing)
 - [core] Add icon to notification
 - [rsync] Add `--rsync-list` command to list dirs
 - [rsync] Add `--rsync-dryrun` flag to show changes without making them

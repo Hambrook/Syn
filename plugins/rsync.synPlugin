@@ -230,3 +230,9 @@ function syn_plugin_rsync() {
 		fi
 	done
 }
+
+# Autocomplete for vars
+function syn_var_rsync-only_complete() {
+	local config_key="rsync"
+	syn_autocomplete_kv_field "${src}/${config_key}/dirs" "${1}"
+}
