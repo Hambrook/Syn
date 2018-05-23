@@ -2,9 +2,16 @@
 
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
-### [0.6.0] 2018-05-24
+## [_next release_]
 
-###### Added
+### Fixed
+
+- [docs] Fix documenation and add "zero dependencies" line
+
+
+## [0.6.0] 2018-05-24
+
+### Added
 
 - Add **CLI TAB COMPLETION**. Full tab completion. And if you put a comma at the end of a var property, it'll suggest the other vars too... eg `--rsync-only dir1,` will suggest `dir1,dir2` and `dir1,dir3`. Use `--install` to install the bash tab completion file to your system.
 - [after] Add `after` plugin for running commands after other actions (also supports `!` prefix like `rsync`)
@@ -13,44 +20,43 @@ Notable changes to this project will be documented here. Or see the [full commit
 - [rsync] Prefix `!` to the name of a dir to have it not included by default (eg `!uploads=path/to/dir`)
 - [core] Added lots of bugs to find later
 
-###### Fixed
+### Fixed
 
 - [core] Fix some shellcheck issues
 
--
 
-### [0.5.0] 2018-05-19
+## [0.5.0] 2018-05-19
 
-###### Added
+### Added
 
 - [docs] Add changelog (this thing)
 - [core] Add icon to notification
 - [rsync] Add `--rsync-list` command to list dirs
 - [rsync] Add `--rsync-dryrun` flag to show changes without making them
 
-###### Changed
+### Changed
 
 - [mysql] MySQL configurations no longer require a password
 - [rsync] Changed default flags to `-acEhlrtuz --progress --no-motd`
 - [rsync] Removed `.git` from the default ignore list
 
 
-### [0.4.0] 2018-03-07
+## [0.4.0] 2018-03-07
 
-###### Added
+### Added
 
 - Add summary with list of config files used
 - Add hidden `--debug` flag
 - [rsync] Add `--rsync-only` parameter to specify specific named dirs to process
 
-###### Fixed
+### Fixed
 
 - Fix load order of configs/plugins
 
 
-### [0.3] 2017-11-29
+## [0.3] 2017-11-29
 
-###### Added
+### Added
 
 - Add notify-send support if available
 - Add `--force` flag to push to live/prod and "warn" environments without prompt
@@ -61,14 +67,14 @@ Notable changes to this project will be documented here. Or see the [full commit
 - Add basic installer. Run `path/to/syn --install` once, then just `syn` after that
 - Add ascii banner
 
-###### Changed
+### Changed
 
 - **BREAKING CHANGE:** Config path uses slashes instead of commas now
 - Dryrun notification now more obvious
 - Author URL to https
 - Moved plugins to their own files
 
-###### Fixed
+### Fixed
 
 - `in_array` function
 - Various formating issues
@@ -77,6 +83,6 @@ Notable changes to this project will be documented here. Or see the [full commit
 - Var escaping
 
 
-### [0.2]
+## [0.2]
 
 - _No documented changes_

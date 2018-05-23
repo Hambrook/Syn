@@ -6,12 +6,14 @@ It will sync between local and remote environments, even between two remote envi
 
 Syn is fully extendable via plugins so you can add your own actions and flags.
 
+Built in Bash with **zero** dependencies. No PHP, NPM or *anything* else.
+
 By Rick Hambrook (rick@rickhambrook.com)
 
 ----
 ## Platforms
 
-Syn was built for Bash on Linux. It should also work in Bash on Mac and Windows 10 Anniversary Edition (though this has not been tested). 
+Syn was built for Bash on Linux. It should also work in Bash on Mac and Windows 10 with Windows Subsystem for Linux (though this has not been tested). 
 
 ----
 ## Installation
@@ -56,15 +58,6 @@ Create a `.syn` file in your project root
 For full configuration options for each plugin, use `--help`
 
     $ syn --help rsync
-
-### Plugin Aliasing
-
-You can also add aliases to your config files so that you can run the same plugin multiple times with completely different configurations.
-
-Simply put your alphanumeric alias after the plugin name (separated by a period) and the differently aliased plugins will get run separately.
-
-    config[live/rsync.web/_flags+]="--chmod=644"
-    config[live/rsync.nonweb/_flags+]="--chmod=600"
 
 ### Example of Multiple Configuration Files
 
@@ -207,7 +200,7 @@ _Show all changes that would be made _without anything actually being changed_
 ----
 ## `!` Prefix
 
-Some plugins that list named items (such as `rysnc` dirs or `after` commands) support the `!` prefix on the item name.
+Some plugins that list named items (such as `rsync` dirs or `after` commands) support the `!` prefix on the item name.
 
     config[live/rsync/dirs]="
         uploads=path/to/dir
@@ -216,6 +209,15 @@ Some plugins that list named items (such as `rysnc` dirs or `after` commands) su
     "
 
 The `!` means that this dir will not be processed unless explicitly told to by `--rsync-only`. So you you simply run `syn local staging` then the `rsync` plugin will process the `uploads` and `configs` dir. If you want the `app` dir too, you'll need to use `--rsync-only uploads,config,app`.
+
+## Plugin Aliasing
+
+You can also add aliases to your config files so that you can run the same plugin multiple times with completely different configurations.
+
+Simply put your alphanumeric alias after the plugin name (separated by a period) and the differently aliased plugins will get run separately.
+
+    config[live/rsync.web/_flags+]="--chmod=644"
+    config[live/rsync.nonweb/_flags+]="--chmod=600"
 
 ----
 ## Default Path
