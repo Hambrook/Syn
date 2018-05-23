@@ -6,11 +6,28 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ###### Added
 
+- [after] Add `after` plugin for running commands after other actions (also supports `!` prefix like `rsync`)
+- [before] Add `before` plugin for running commands before other actions (also supports `!` prefix like `rsync`)
+- [core] Add more colours to output (eg plugin output is on grey)
+- [rsync] Prefix `!` to the name of a dir to have it not included by default (eg `!uploads=path/to/dir`)
+
+###### Fixed
+
+- [core] Fix some shellcheck issues
+
+-
+
+### [0.5.0] 2018-05-19
+
+###### Added
+
 - Add changelog (this thing)
-- [rsync] Add `--rsync-dirs` command to list dirs
+- [core] Add icon to notification
+- [rsync] Add `--rsync-list` command to list dirs
 - [rsync] Add `--rsync-dryrun` flag to show changes without making them
 
 ###### Changed
+
 - [mysql] MySQL configurations no longer require a password
 - [rsync] Changed default flags to `-acEhlrtuz --progress --no-motd`
 - [rsync] Removed `.git` from the default ignore list
