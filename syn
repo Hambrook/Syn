@@ -215,7 +215,7 @@ function syn_confirm() {
 # In Array
 function in_array() {
 	local haystack="$2"
-	haystack="$haystack[@]"
+	haystack="${haystack[@]}"
 	local needle=$1
 	local in=1
 	for element in "${!haystack}"; do
@@ -235,7 +235,7 @@ function in_array_string() {
 	local in=1
 	for element in "${haystack[@]}"; do
 		echo $element
-		if [[ $element == $needle ]]; then
+		if [[ $element == "$needle" ]]; then
 			in=0
 			break
 		fi
@@ -277,15 +277,15 @@ function syn_post_summary() {
 	# Time reporting
 	local time_diff=$(( `date +"%s"` - $time_start ))
 	local time_diff_str=""
-	if (( $time_diff > 3599 )); then
+	if (( time_diff > 3599 )); then
 		# hours, minutes, seconds
-		time_diff_str=`date -u -d @"${time_diff}" +'%-Hh %-Mm %-Ss'`;
-	elif (( $time_diff > 59 )); then
+		time_diff_str=$(date -u -d @"${time_diff}" +'%-Hh %-Mm %-Ss');
+	elif (( time_diff > 59 )); then
 		# minutes, seconds
-		time_diff_str=`date -u -d @"${time_diff}" +'%-Mm %-Ss'`;
+		time_diff_str=$(date -u -d @"${time_diff}" +'%-Mm %-Ss');
 	else
 		# seconds
-		time_diff_str=`date -u -d @"${time_diff}" +'%-Ss'`;
+		time_diff_str=$(date -u -d @"${time_diff}" +'%-Ss');
 	fi
 
 	# Only
@@ -305,7 +305,7 @@ function syn_post_summary() {
 	Time:    $(_ bold)%s$(_ r_bold)
 	Config files: ${tmp_configs}
 $(_ bg_default)
-" $src $dst "${plugins_str}" "${time_diff_str}"
+" "${src}" "${dst}" "${plugins_str}" "${time_diff_str}"
 
 	# Popup notification
 	if which notify-send >/dev/null; then
@@ -633,9 +633,9 @@ function syn_parse_actions() {
 	vars[only]=""
 
 	# Need to sort by plugin exec order
-	for p in ${plugins_exec[@]}; do
+	for p in "${plugins_exec[@]}"; do
 		local pattern="^(${p}([^a-zA-Z0-9]+.*)?)"
-		for k in ${tmp[@]}; do
+		for k in "${tmp[@]}"; do
 			if [[ $k =~ $pattern ]]; then
 				vars[only]="${vars[only]} ${k}"
 			fi
@@ -824,7 +824,7 @@ $(_ reset)" "${_SYN_VERSION}" "${_SYN_AUTHOR}" "${_SYN_WEBSITE}"
 # Do the actual synchronising
 function syn_cmd_sync() {
 	# Check if we have any configs set
-	if (( $config_cnt == 0 )); then
+	if (( config_cnt == 0 )); then
 		syn_error "No config files were found"
 	fi
 
@@ -842,7 +842,7 @@ function syn_cmd_sync() {
 	# Check that all the actions exist
 	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
 		local p=$(syn_get_plugin_name_from_fuzzy $x)
-		if [[ ! $(syn_validate_plugin $p) ]]; then
+		if [[ ! $(syn_validate_plugin "$p") ]]; then
 			syn_error "Plugin '$p' not found"
 		fi
 	done
