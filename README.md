@@ -6,7 +6,7 @@ It will sync between local and remote environments, even between two remote envi
 
 Syn is fully extendable via plugins so you can add your own actions and flags.
 
-Built in Bash with **zero** dependencies. No PHP, NPM or *anything* else.
+Built in Bash with **zero** script dependencies. No PHP, NPM, etc. You just need `mysql` and `rsync` if you're using those plugins.
 
 By Rick Hambrook (rick@rickhambrook.com)
 
