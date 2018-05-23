@@ -8,6 +8,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 - [rsync] Fix `--rsync-only` not processing non-default dirs even when told to
 - [docs] Fix documenation and add "zero dependencies" line
+- [docs] Remove `chmod` line from installation instructions
 
 
 ## [0.6.0] 2018-05-24

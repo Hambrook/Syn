@@ -18,7 +18,6 @@ Syn was built for Bash on Linux. It should also work in Bash on Mac and Windows 
 ----
 ## Installation
     $ git clone https://github.com/Hambrook/Syn.git
-    $ chmod +x Syn/syn
     $ Syn/syn --install
 
 ----
