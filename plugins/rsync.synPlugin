@@ -154,12 +154,19 @@ function syn_plugin_rsync() {
 	fi
 
 	# Destination
-	cnt=0
+	local cnt=0
 	for file in ${config[$dst/$config_key/dirs]}; do
 		(( cnt++ ))
 		local pathinfo=(${file//=/ })
+		local on_default=true
 		if [[ "${pathinfo[1]}" ]]; then
-			if [[ -z $onlydirs ]] || in_array "${pathinfo[0]}" onlydirs; then
+			if [ "${pathinfo[0]:0:1}" == "!" ]; then
+				pathinfo[0]="${pathinfo[0]:1}"
+				on_default=false
+			fi
+			if [ -z $onlydirs ] && [ $on_default == true ]; then
+				dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
+			elif in_array "${pathinfo[0]}" onlydirs; then
 				dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
 			fi
 		else
@@ -169,7 +176,6 @@ function syn_plugin_rsync() {
 	local dst_ssh=""
 	if [[ "${config[${dst}/${config_key}/_ssh]}" ]]; then
 		dst_ssh="${config[${dst}/${config_key}/_ssh]}:"
-		src_ssh="" # Can't use two remotes
 	fi
 
 	# Loop it and create the commands

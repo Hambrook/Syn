@@ -6,6 +6,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ### Fixed
 
+- [rsync] Fix `--rsync-only` not processing non-default dirs even when told to
 - [docs] Fix documenation and add "zero dependencies" line
 
 
