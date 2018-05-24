@@ -65,7 +65,6 @@ CONFIG
 src: List of commands when this environment is the source
 dst: List of commands when this environment is the destination
 _ssh: SSH string for the server run these commands on
-_tunnel: SSH string for a separate server to tunnel through
 
 --------------------------------------------------------------------------------
 
@@ -76,8 +75,8 @@ CONFIG EXAMPLE
 ANOTHER EXAMPLE
 
     config[live/${config_key}/dst]=\"
-        enable_maintenance=\"php /path/to/project/bin mode:maintenance:${example_maintenance}\"
         clear_cache=\"php /path/to/project/bin cache:clear\"
+        enable_maintenance=\"php /path/to/project/bin mode:maintenance:${example_maintenance}\"
 "
 }
 
@@ -86,68 +85,51 @@ function syn_helper_beforeafter_run() {
 	local flag_key=$2
 	local case_title=$3
 
-	# Limit as per parameters
-	local onlycommands=""
-	if [[ "${vars[${flag_key}-only]}" ]]; then
-		onlycommands=(${vars[${flag_key}-only]//,/ })
+	# Limit to defaults
+	local pattern="^\s*(\w*)(=?)(.*)"
+	# or limit to parameters
+	if [[ ! -z "${vars[${flag_key}-only]}" ]]; then
+		pattern="^\s*!?(${vars[${flag_key}-only]/,/|})(=?)(.*)"
 	fi
-
 	declare -A loop_envs=( [src]="${src}" [dst]="${dst}" )
 
 	for k in "${!loop_envs[@]}"; do
 		local env_type="${k}" # src
 		local env_key="${loop_envs[$k]}" # staging
 
-		# Source
 		IFS=$'\n' read -rd '' -a lines <<<"${config[${env_key}/${config_key}/${env_type}]}"
 		for line in "${lines[@]}"; do
-			local action_command=""
-			local linekey="<unnamed action>"
-			local on_default=true
-
-			# Extract the command
-			IFS=$'=' read -rd '' -a lineparts <<<"${line}"
-			if [[ "${lineparts[1]}" ]]; then
-				linekey="$(echo -e "${lineparts[0]}" | sed -e 's/^[[:space:]]*//')"
-				if [ "${linekey:0:1}" == "!" ]; then
-					linekey="${linekey:1}"
-					on_default=false
+			if [[ $line =~ $pattern ]]; then
+				action_command="${BASH_REMATCH[3]}"
+				if [[ -z ${BASH_REMATCH[2]} ]]; then
+					action_command="${BASH_REMATCH[1]}"
 				fi
-				if [ -z $onlycommands ] && [ $on_default == true ]; then
-					# the string might have had multiple "=" in it, join them back up
-					action_command=$(join "=" "${lineparts[@]:1}")
-				elif in_array "${linekey}" onlycommands; then
-					# the string might have had multiple "=" in it, join them back up
-					action_command=$(join "=" "${lineparts[@]:1}")
+
+				if [[ ! "${action_command}" ]]; then
+					continue
 				fi
-			else
-				action_command="${lineparts[0]}"
-			fi
 
-			if [[ ! "${action_command}" ]]; then
-				continue
-			fi
+				# Should this be sent to a docker container?
+				if [[ "${config[${env_key}/${config_key}/_docker]}" ]]; then
+					action_command=$(syn_docker_wrap "${config[${env_key}/${config_key}/_docker]}" "${action_command}")
+				fi
 
-			# Should this be sent to a docker container?
-			if [[ "${config[${env_key}/${config_key}/_docker]}" ]]; then
-				action_command=$(syn_docker_wrap "${config[${env_key}/${config_key}/_docker]}" "${action_command}")
-			fi
+				# Should this be over SSH?
+				if [[ "${config[${env_key}/${config_key}/_ssh]}" ]]; then
+					action_command=$(syn_ssh_wrap "${config[${env_key}/${config_key}/_ssh]}" "${action_command}")
+				fi
 
-			# Should this be over SSH?
-			if [[ "${config[${env_key}/${config_key}/_ssh]}" ]]; then
-				action_command=$(syn_ssh_wrap "${config[${env_key}/${config_key}/_ssh]}" "${action_command}")
-			fi
-
-			# Finish up
-			if ${flags[dryrun]}; then
-				printf "[PREVIEW] %s: $(_ bold)%s$(_ reset)\n" "${case_title}" "${linekey}"
-				printf "$(_ lightgray bg_darkgray)\n\t%s\n$(_ reset)\n\n" "${action_command}"
-			else
-				printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title}" "${linekey}"
-				printf "$(_ lightgray bg_darkgray)\n"
-				eval $action_command
-				printf "$(_ reset)\n"
-				printf "%s: $(_ bold)%s [DONE]\n$(_ reset)\n" "${i}"
+				# Finish up
+				if ${flags[dryrun]}; then
+					printf "[PREVIEW] %s: $(_ bold)%s$(_ reset)\n" "${case_title}" "${linekey}"
+					printf "$(_ lightgray bg_darkgray)\n\t%s\n$(_ reset)\n\n" "${action_command}"
+				else
+					printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title}" "${linekey}"
+					printf "$(_ lightgray bg_darkgray)\n"
+					eval $action_command
+					printf "$(_ reset)\n"
+					printf "%s: $(_ bold)%s [DONE]\n$(_ reset)\n" "${i}"
+				fi
 			fi
 		done
 	done

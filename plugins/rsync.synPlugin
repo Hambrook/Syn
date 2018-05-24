@@ -80,8 +80,11 @@ function syn_cmd_rsync-list() {
 	fi
 	for e in ${envs[*]}; do
 		local rsync_dirs=""
-		for d in ${config[$e/rsync/dirs]}; do
-			rsync_dirs+="\n  ${d}"
+		IFS=$'\n' read -rd '' -a lines <<<"${config[$e/rsync/dirs]}"
+		for line in "${lines[@]}"; do
+			# trim leading space
+			line="$(echo -e "${line}" | sed -E 's/^\s*//')"
+			rsync_dirs+="\n  ${line}"
 		done
 		if [[ ! "${rsync_dirs}" ]]; then
 			rsync_dirs="\n  <none>"
@@ -120,32 +123,26 @@ function syn_plugin_rsync() {
 		printf "$(_ bg_yellow)\n\tRSYNC DRY RUN: Actions will be simulated but not executed\n\tTriggered by ${dryrun_triggered_by}\n$(_ reset)\n\n"
 	fi
 
-	# Limit as per parameters
-	local onlydirs=""
-	if [[ "${vars[rsync-only]}" ]]; then
-		onlydirs=(${vars[rsync-only]//,/ })
+	# Limit to defaults
+	local pattern="^\s*(\w*)(=?)(.*)"
+	# or limit to parameters
+	if [[ ! -z "${vars[rsync-only]}" ]]; then
+		pattern="^\s*!?(${vars[rsync-only]/,/|})(=?)(.*)"
 	fi
-
-	# Loop the environments and normalise the paths into two arrays
 
 	# Source
 	local cnt=0
-	for file in ${config[$src/$config_key/dirs]}; do
+	IFS=$'\n' read -rd '' -a lines <<<"${config[$src/$config_key/dirs]}"
+	for line in "${lines[@]}"; do
 		(( cnt++ ))
-		local pathinfo=(${file//=/ })
-		local on_default=true
-		if [[ "${pathinfo[1]}" ]]; then
-			if [ "${pathinfo[0]:0:1}" == "!" ]; then
-				pathinfo[0]="${pathinfo[0]:1}"
-				on_default=false
+		if [[ $line =~ $pattern ]]; then
+			k="${BASH_REMATCH[1]}"
+			v="${BASH_REMATCH[3]}"
+			if [[ -z ${BASH_REMATCH[2]} ]]; then
+				k="${cnt}"
+				v="${BASH_REMATCH[1]}"
 			fi
-			if [ -z $onlydirs ] && [ $on_default == true ]; then
-				src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
-			elif in_array "${pathinfo[0]}" onlydirs; then
-				src_paths["${pathinfo[0]}"]="${pathinfo[1]}"
-			fi
-		else
-			src_paths["$cnt"]="${pathinfo[0]}"
+			src_paths[$k]="${v}"
 		fi
 	done
 	local src_ssh=""
@@ -155,22 +152,17 @@ function syn_plugin_rsync() {
 
 	# Destination
 	local cnt=0
-	for file in ${config[$dst/$config_key/dirs]}; do
+	IFS=$'\n' read -rd '' -a lines <<<"${config[$dst/$config_key/dirs]}"
+	for line in "${lines[@]}"; do
 		(( cnt++ ))
-		local pathinfo=(${file//=/ })
-		local on_default=true
-		if [[ "${pathinfo[1]}" ]]; then
-			if [ "${pathinfo[0]:0:1}" == "!" ]; then
-				pathinfo[0]="${pathinfo[0]:1}"
-				on_default=false
+		if [[ $line =~ $pattern ]]; then
+			k="${BASH_REMATCH[1]}"
+			v="${BASH_REMATCH[3]}"
+			if [[ -z ${BASH_REMATCH[2]} ]]; then
+				k="${cnt}"
+				v="${BASH_REMATCH[1]}"
 			fi
-			if [ -z $onlydirs ] && [ $on_default == true ]; then
-				dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
-			elif in_array "${pathinfo[0]}" onlydirs; then
-				dst_paths["${pathinfo[0]}"]="${pathinfo[1]}"
-			fi
-		else
-			dst_paths["$cnt"]="${pathinfo[0]}"
+			dst_paths[$k]="${v}"
 		fi
 	done
 	local dst_ssh=""
