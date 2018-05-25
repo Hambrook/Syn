@@ -15,10 +15,6 @@ exec_order[after]=99
 # Vars
 vars[after-only]=""
 vars_help[after-only]="AFTER: Specify which operations you want to run and ignore others (comma separated)"
-# Autocomplete
-function syn_var_after-only_autocomplete() {
-	syn_helper_beforeafter_only_autocomplete "after" "${1}"
-}
 
 
 # Plugin: AFTER
@@ -29,7 +25,6 @@ function syn_plugin_after_help() {
 	syn_helper_beforeafter_run_help "after" "AFTER"
 }
 
-
 # Show commands
 function syn_cmd_after-list() {
 	syn_helper_beforeafter_list "after" "AFTER"
@@ -38,4 +33,7 @@ function syn_cmd_after-list_help() {
 	printf "Show available commands for src, dst, or all environments"
 }
 
-
+# Show complete
+function syn_var_after-only_complete() {
+	syn_helper_beforeafter_only_complete "after" "${1}"
+}

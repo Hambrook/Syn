@@ -15,10 +15,6 @@ exec_order[before]=10
 # Vars
 vars[before-only]=""
 vars_help[before-only]="BEFORE: Specify which operations you want to run and ignore others (comma separated)"
-# Autocomplete
-function syn_var_before-only_autocomplete() {
-	syn_helper_beforeafter_only_autocomplete "before" "${1}"
-}
 
 
 # Plugin: BEFORE
@@ -36,6 +32,12 @@ function syn_cmd_before-list() {
 }
 function syn_cmd_before-list_help() {
 	printf "Show available commands for src, dst, or all environments"
+}
+
+
+# Autocomplete for vars
+function syn_var_before-only_complete() {
+	syn_helper_beforeafter_only_complete "before" "${1}"
 }
 
 
@@ -78,7 +80,6 @@ ANOTHER EXAMPLE
 "
 }
 
-
 function syn_helper_beforeafter_run() {
 	local config_key=$1
 	local flag_key=$2
@@ -96,37 +97,39 @@ function syn_helper_beforeafter_run() {
 		local env_type="${k}" # src
 		local env_key="${loop_envs[$k]}" # staging
 
-		declare -A commands
+		IFS=$'\n' read -rd '' -a lines <<<"${config[${env_key}/${config_key}/${env_type}]}"
+		for line in "${lines[@]}"; do
+			if [[ $line =~ $pattern ]]; then
+				action_command="${BASH_REMATCH[3]}"
+				if [[ -z ${BASH_REMATCH[2]} ]]; then
+					action_command="${BASH_REMATCH[1]}"
+				fi
 
-		syn_kv_field_to_filtered_kv_array commands "${env_key}/${config_key}/${env_type}" "${vars[${flag_key}-only]}"
-		for c in "${!commands[@]}"; do
-			local cmd_title="${c}"
-			local cmd_command="${commands[${c}]}"
+				if [[ ! "${action_command}" ]]; then
+					continue
+				fi
 
-			if [[ ! "${cmd_command}" ]]; then
-				continue
-			fi
+				# Should this be sent to a docker container?
+				if [[ "${config[${env_key}/${config_key}/_docker]}" ]]; then
+					action_command=$(syn_docker_wrap "${config[${env_key}/${config_key}/_docker]}" "${action_command}")
+				fi
 
-			# Should this be sent to a docker container?
-			if [[ "${config[${env_key}/${config_key}/_docker]}" ]]; then
-				cmd_command=$(syn_docker_wrap "${config[${env_key}/${config_key}/_docker]}" "${cmd_command}")
-			fi
+				# Should this be over SSH?
+				if [[ "${config[${env_key}/${config_key}/_ssh]}" ]]; then
+					action_command=$(syn_ssh_wrap "${config[${env_key}/${config_key}/_ssh]}" "${action_command}")
+				fi
 
-			# Should this be over SSH?
-			if [[ "${config[${env_key}/${config_key}/_ssh]}" ]]; then
-				cmd_command=$(syn_ssh_wrap "${config[${env_key}/${config_key}/_ssh]}" "${cmd_command}")
-			fi
-
-			# Finish up
-			if ${flags[dryrun]}; then
-				printf "[PREVIEW] %s: $(_ bold)%s$(_ reset)\n" "${case_title}" "${cmd_title}"
-				printf "$(_ lightgray bg_darkgray)\n\t%s\n$(_ reset)\n\n" "${cmd_command}"
-			else
-				printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title}" "${linekey}"
-				printf "$(_ lightgray bg_darkgray)\n"
-				eval $cmd_command
-				printf "$(_ reset)\n"
-				printf "%s: $(_ bold)%s [DONE]\n$(_ reset)\n" "${i}"
+				# Finish up
+				if ${flags[dryrun]}; then
+					printf "[PREVIEW] %s: $(_ bold)%s$(_ reset)\n" "${case_title}" "${linekey}"
+					printf "$(_ lightgray bg_darkgray)\n\t%s\n$(_ reset)\n\n" "${action_command}"
+				else
+					printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title}" "${linekey}"
+					printf "$(_ lightgray bg_darkgray)\n"
+					eval $action_command
+					printf "$(_ reset)\n"
+					printf "%s: $(_ bold)%s [DONE]\n$(_ reset)\n" "${i}"
+				fi
 			fi
 		done
 	done
@@ -146,14 +149,36 @@ function syn_helper_beforeafter_list() {
 	fi
 
 	for e in ${envs[*]}; do
-		syn_list_kv_field "${e}:src" "${e}/${config_key}/src"
-		syn_list_kv_field "${e}:dst" "${e}/${config_key}/dst"
+		# SRC
+		local commands_src=""
+		IFS=$'\n' read -rd '' -a lines <<<"${config[${e}/${config_key}/src]}"
+		for line in "${lines[@]}"; do
+			# remove leading whitespace
+			line="$(echo -e "${line}" | sed -e 's/^[[:space:]]*//')"
+			commands_src+="\n    ${line}"
+		done
+		if [[ ! "${commands_src}" ]]; then
+			commands_src="\n    <none>"
+		fi
+
+		# DST
+		local commands_dst=""
+		IFS=$'\n' read -rd '' -a lines <<<"${config[${e}/${config_key}/dst]}"
+		for line in "${lines[@]}"; do
+			# remove leading whitespace
+			line="$(echo -e "${line}" | sed -e 's/^[[:space:]]*//')"
+			commands_dst+="\n    ${line}"
+		done
+		if [[ ! "${commands_dst}" ]]; then
+			commands_dst="\n    <none>"
+		fi
+		printf "\n$(_ bold)%s$(_ reset)\n  SRC${commands_src}\n  DST${commands_dst}\n" $e
 	done
 }
 
 
 # Autocomplete
-function syn_helper_beforeafter_only_autocomplete() {
+function syn_helper_beforeafter_only_complete() {
 	local config_key=$1
 	syn_autocomplete_kv_field "${src}/${config_key}/src" "${2}"
 	syn_autocomplete_kv_field "${dst}/${config_key}/dst" "${2}"

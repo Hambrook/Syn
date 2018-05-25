@@ -38,12 +38,14 @@ config[live/rsync/_flags]=-aclru --progress
 config[live/rsync/_flags+]=\"--chown=www-data:www-data --rsync-path=\\\\\"sudo rsync\\\\\"\"
 config[live/rsync/_tunnel]=user@host.with.access.to.live
 config[live/rsync/dirs]=\"
-    uploads=path/to/dir
+    uploads=~/path/to/dir
     configs=/root/based/path
 \"
 "
 }
 
+# Execution order (defaults to 50 for each plugin if not set)
+exec_order[rsync]=51
 
 # rsync plugin defaults
 config[_rsync_flags]="-acEhlrtuz --progress --no-motd"
@@ -63,15 +65,9 @@ config[_rsync_flags]="-acEhlrtuz --progress --no-motd"
 flags[rsync-dryrun]=false
 flags_help[rsync-dryrun]="RSYNC: Show anticipated changed without actually doing them"
 
-
 # Vars
 vars[rsync-only]=""
 vars_help[rsync-only]="RSYNC: Specify dirs to process and ignore others (comma separated)"
-# Autocomplete
-function syn_var_rsync-only_autocomplete() {
-	local config_key="rsync"
-	syn_autocomplete_kv_field "${src}/${config_key}/dirs" "${1}"
-}
 
 
 # Show dirs
@@ -83,7 +79,17 @@ function syn_cmd_rsync-list() {
 		envs=("$src" "$dst")
 	fi
 	for e in ${envs[*]}; do
-		syn_list_kv_field "${e}" "$e/rsync/dirs"
+		local rsync_dirs=""
+		IFS=$'\n' read -rd '' -a lines <<<"${config[$e/rsync/dirs]}"
+		for line in "${lines[@]}"; do
+			# trim leading space
+			line="$(echo -e "${line}" | sed -E 's/^\s*//')"
+			rsync_dirs+="\n  ${line}"
+		done
+		if [[ ! "${rsync_dirs}" ]]; then
+			rsync_dirs="\n  <none>"
+		fi
+		printf "\n$(_ bold)%s$(_ reset)${rsync_dirs}\n" $e
 	done
 }
 function syn_cmd_rsync-list_help() {
@@ -117,15 +123,48 @@ function syn_plugin_rsync() {
 		printf "$(_ bg_yellow)\n\tRSYNC DRY RUN: Actions will be simulated but not executed\n\tTriggered by ${dryrun_triggered_by}\n$(_ reset)\n\n"
 	fi
 
+	# Limit to defaults
+	local pattern="^\s*(\w*)(=?)(.*)"
+	# or limit to parameters
+	if [[ ! -z "${vars[rsync-only]}" ]]; then
+		pattern="^\s*!?(${vars[rsync-only]/,/|})(=?)(.*)"
+	fi
+
 	# Source
-	syn_kv_field_to_filtered_kv_array src_paths "${src}/${config_key}/dirs" "${vars[rsync-only]}"
+	local cnt=0
+	IFS=$'\n' read -rd '' -a lines <<<"${config[$src/$config_key/dirs]}"
+	for line in "${lines[@]}"; do
+		(( cnt++ ))
+		if [[ $line =~ $pattern ]]; then
+			k="${BASH_REMATCH[1]}"
+			v="${BASH_REMATCH[3]}"
+			if [[ -z ${BASH_REMATCH[2]} ]]; then
+				k="${cnt}"
+				v="${BASH_REMATCH[1]}"
+			fi
+			src_paths[$k]="${v}"
+		fi
+	done
 	local src_ssh=""
 	if [[ "${config[${src}/${config_key}/_ssh]}" ]]; then
 		src_ssh="${config[${src}/${config_key}/_ssh]}:"
 	fi
 
 	# Destination
-	syn_kv_field_to_filtered_kv_array dst_paths "${dst}/${config_key}/dirs" "${vars[rsync-only]}"
+	local cnt=0
+	IFS=$'\n' read -rd '' -a lines <<<"${config[$dst/$config_key/dirs]}"
+	for line in "${lines[@]}"; do
+		(( cnt++ ))
+		if [[ $line =~ $pattern ]]; then
+			k="${BASH_REMATCH[1]}"
+			v="${BASH_REMATCH[3]}"
+			if [[ -z ${BASH_REMATCH[2]} ]]; then
+				k="${cnt}"
+				v="${BASH_REMATCH[1]}"
+			fi
+			dst_paths[$k]="${v}"
+		fi
+	done
 	local dst_ssh=""
 	if [[ "${config[${dst}/${config_key}/_ssh]}" ]]; then
 		dst_ssh="${config[${dst}/${config_key}/_ssh]}:"
@@ -134,7 +173,6 @@ function syn_plugin_rsync() {
 	# Loop it and create the commands
 	for i in "${!src_paths[@]}"; do
 		if [[ "${dst_paths[$i]}" ]]; then
-			# Update paths with roots if needed
 			local pattern="^(~|/|./|../)"
 			local src_path="$(printf "${src_paths[$i]}" | sed -e 's/\*$//')"
 			if [[ ( ( "${config[${src}/${config_key}/root]}" ) || ( $local_root && ! "${config[${src}/${config_key}/_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
@@ -189,4 +227,10 @@ function syn_plugin_rsync() {
 			fi
 		fi
 	done
+}
+
+# Autocomplete for vars
+function syn_var_rsync-only_complete() {
+	local config_key="rsync"
+	syn_autocomplete_kv_field "${src}/${config_key}/dirs" "${1}"
 }
