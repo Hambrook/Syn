@@ -257,6 +257,14 @@ function syn_cmd_install_help() {
 }
 
 
+function syn_cmd_version() {
+	printf "Syn v%s\n" "${_SYN_VERSION}"
+}
+function syn_cmd_version_help() {
+	printf "Show the version and exit"
+}
+
+
 
 
 	 #######  ######## ##     ## ######## ########      ######  ######## ##     ## ######## ########

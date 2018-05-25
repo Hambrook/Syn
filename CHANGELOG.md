@@ -8,6 +8,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 - [core] Add core functions to take weight off the plugins (mostly with kv fields)
 - [core] Add autocomplete for `--only`
+- [core] Add `--version`
 
 ### Fixed
 
