@@ -83,6 +83,18 @@ declare -A vars_help=(
 	[only]="Select only the actions you want to take (comma separated)"
 )
 
+
+
+
+	 ######   #######  ##        #######  ##     ## ########   ######
+	##    ## ##     ## ##       ##     ## ##     ## ##     ## ##    ##
+	##       ##     ## ##       ##     ## ##     ## ##     ## ##
+	##       ##     ## ##       ##     ## ##     ## ########   ######
+	##       ##     ## ##       ##     ## ##     ## ##   ##         ##
+	##    ## ##     ## ##       ##     ## ##     ## ##    ##  ##    ##
+	 ######   #######  ########  #######   #######  ##     ##  ######
+
+
 # Formatting vars
 declare -A formatting=(
 	# Formatting
@@ -142,10 +154,6 @@ declare -A formatting=(
 )
 
 
-################################################################################
-# MISC HELPERS
-################################################################################
-
 # Get a formatting string
 function _() {
 	if [[ ! $# || $colour_enabled == false ]]; then
@@ -165,24 +173,17 @@ function _() {
 	printf "\e[${output}m"
 }
 
-# Initialise a few paths etc
-function syn_init() {
-	local real_path="${BASH_SOURCE[0]}"
-	if [[ -L "${real_path}" ]]; then
-		real_path="$(readlink "${real_path}")"
-	fi
-	app_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
 
-	plugin_dir_builtin="${app_dir}/plugins"
 
-	if [[ "${SYN_PLUGIN_PATH}" && -d "${SYN_PLUGIN_PATH}" ]]; then
-		plugin_dir_custom="${SYN_PLUGIN_PATH}"
-	fi
 
-	if [[ "${SYN_DEFAULT_PATH}" && -d "${SYN_DEFAULT_PATH}" ]]; then
-		default_config_dir="${SYN_DEFAULT_PATH}"
-	fi
-}
+	##     ## ####  ######   ######     ##     ## ######## ##       ########  ######## ########   ######
+	###   ###  ##  ##    ## ##    ##    ##     ## ##       ##       ##     ## ##       ##     ## ##    ##
+	#### ####  ##  ##       ##          ##     ## ##       ##       ##     ## ##       ##     ## ##
+	## ### ##  ##   ######  ##          ######### ######   ##       ########  ######   ########   ######
+	##     ##  ##        ## ##          ##     ## ##       ##       ##        ##       ##   ##         ##
+	##     ##  ##  ##    ## ##    ##    ##     ## ##       ##       ##        ##       ##    ##  ##    ##
+	##     ## ####  ######   ######     ##     ## ######## ######## ##        ######## ##     ##  ######
+
 
 # Exit with an error and a non-successful exit code
 function syn_error() {
@@ -249,46 +250,6 @@ function function_exists() {
 	return $?
 }
 
-# Autocomplete for vars
-function syn_autocomplete_kv_field() {
-	local config_key="${1}"
-	declare -a valid_existing
-	declare -a suggestions
-
-	IFS=$',' read -rd '' -a existing <<<"${2}"
-
-	IFS=$'\n' read -rd '' -a lines <<<"${config[${config_key}]}"
-	for line in "${lines[@]}"; do
-		local linekey=""
-		# Extract the linekey
-		IFS=$'=' read -rd '' -a lineparts <<<"${line}"
-		if [[ "${lineparts[1]}" ]]; then
-			linekey="$(echo -e "${lineparts[0]}" | sed -e 's/^[[:space:]]*//')"
-			if [ "${linekey:0:1}" == "!" ]; then
-				linekey="${linekey:1}"
-			fi
-			suggestions+=("${linekey}")
-		fi
-	done
-	for linekey in "${existing[@]}"; do
-		if in_array "${linekey}" suggestions; then
-			valid_existing+=("${linekey}")
-		fi
-	done
-
-	prefix=$(join "," "${valid_existing[@]}")
-	for k in "${!suggestions[@]}"; do
-		if in_array "${suggestions[${k}]}" existing; then
-			unset "${suggestions[${k}]}"
-		elif [[ "${#valid_existing[@]}" == 0 ]]; then
-			echo "${suggestions[${k}]}"
-		else
-			echo $prefix,"${suggestions[${k}]}"
-		fi
-	done
-}
-
-
 # Check if an array key exists
 function array_key_exists() {
 	eval '[ ${'$2'[$1]+muahaha} ]'
@@ -298,6 +259,155 @@ function array_key_exists() {
 function join() {
 	local IFS="$1"; shift; echo "$*"
 }
+
+
+
+
+	##    ## ##     ##    ######## #### ######## ##       ########   ######
+	##   ##  ##     ##    ##        ##  ##       ##       ##     ## ##    ##
+	##  ##   ##     ##    ##        ##  ##       ##       ##     ## ##
+	#####    ##     ##    ######    ##  ######   ##       ##     ##  ######
+	##  ##    ##   ##     ##        ##  ##       ##       ##     ##       ##
+	##   ##    ## ##      ##        ##  ##       ##       ##     ## ##    ##
+	##    ##    ###       ##       #### ######## ######## ########   ######
+
+
+# Autocomplete for vars
+function syn_autocomplete_kv_field() {
+	local config_key="${1}"
+	declare -a valid_existing
+	declare -a suggestions
+
+	# Get all valid keys
+	syn_kv_field_to_filtered_k_array suggestions "${config_key}" "*"
+
+	# Get keys already entered on the CLI unless partial or invalid
+	IFS=$',' read -rd '' -a existing <<<"${2}"
+	for linekey in "${existing[@]}"; do
+		if in_array "${linekey}" suggestions; then
+			valid_existing+=("${linekey}")
+		fi
+	done
+
+	prefix=$(join "," "${valid_existing[@]}")
+	for k in "${!suggestions[@]}"; do
+		if [[ "${#valid_existing[@]}" == 0 ]]; then
+			echo "${suggestions[${k}]}"
+		elif ! in_array "${suggestions[${k}]}" existing; then
+			echo "${prefix},${suggestions[${k}]}"
+		fi
+	done
+}
+
+# Get a filtered key/value array from a key/value field
+# syn_kv_field_to_filtered_kv_array result_arr "local/after/src"
+function syn_kv_field_to_filtered_kv_array() {
+	local -n arr="${1}"      # return var name passed by reference (no $ on calling line)
+	local config_key="${2}"  # config key, eg "live/after/dst"
+	local only="${3}"        # filter: eg "mysite,themes". "*" = ALL lines, "" = DEFAULT lines (without ! prefix)
+	local show_prefix=$4     # leave ! prefix on keys?
+	local cnt=0
+	local filter=""
+
+	IFS=$'\n' read -rd '' -a lines <<<"${config[${config_key}]}"
+	local pattern="^\s*(\!?)([^= ]*)(=?)(.*)"
+	#if [[ ! -z $only && ! $only == "*" ]]; then
+	#	pattern="^\s*(\!?)(${only//,/|})(=)(.*)"
+	#fi
+	# Filter using array instead of pattern so we can filter unnamed lines
+	if [[ ! $only == "*" ]]; then
+		filter=${only//,/ }
+	fi
+	for line in "${lines[@]}"; do
+		if [[ $line =~ $pattern ]]; then
+			# Remove non-defaults unless we want ALL
+			if [[ "${BASH_REMATCH[1]}" && -z $only ]]; then
+				continue
+			fi
+			k="${BASH_REMATCH[2]}"
+			v="${BASH_REMATCH[4]}"
+			# Is this row unnamed?
+			if [[ -z ${BASH_REMATCH[3]} ]]; then
+			(( cnt++ ))
+				k="unnamed-${cnt}"
+				v="${BASH_REMATCH[2]}"
+			fi
+
+			# Do filtering here so we can filter unnamed lines
+			if [[ $filter ]] && ! in_array $k filter; then
+				continue
+			fi
+
+			# Are we leaving the prefix on?
+			if [[ $show_prefix ]]; then
+				k="${BASH_REMATCH[1]}$k"
+			fi
+			: ${arr[${k}]:=${v}}
+		fi
+	done
+}
+
+# Get a filtered keys array from a key/value field
+# syn_kv_field_to_filtered_k_array result_arr "local/after/src"
+function syn_kv_field_to_filtered_k_array() {
+	local -n arr="${1}"
+	local config_key="${2}"
+	local only="${3}"
+	local show_prefix="${4}"
+	local -A tmp
+
+	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "${only}" "${show_prefix}"
+
+	arr=( "${!tmp[@]}" )
+}
+
+# Output kv field as list
+function syn_list_kv_field() {
+	local title="${1}"
+	local config_key="${2}"
+	local -A tmp
+
+	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "*" true
+	printf "\n$(_ bold)%s$(_ reset)\n" "${title}"
+	for k in "${!tmp[@]}"; do
+		printf "  %s=%s\n" "${k}" "${tmp[$k]}"
+	done
+	if (( ${#tmp[@]} == 0 )); then
+		printf "  <none>\n"
+	fi
+}
+
+
+
+
+	 ######   #######  ########  ########
+	##    ## ##     ## ##     ## ##
+	##       ##     ## ##     ## ##
+	##       ##     ## ########  ######
+	##       ##     ## ##   ##   ##
+	##    ## ##     ## ##    ##  ##
+	 ######   #######  ##     ## ########
+
+
+# Initialise a few paths etc
+function syn_init() {
+	local real_path="${BASH_SOURCE[0]}"
+	if [[ -L "${real_path}" ]]; then
+		real_path="$(readlink "${real_path}")"
+	fi
+	app_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
+
+	plugin_dir_builtin="${app_dir}/plugins"
+
+	if [[ "${SYN_PLUGIN_PATH}" && -d "${SYN_PLUGIN_PATH}" ]]; then
+		plugin_dir_custom="${SYN_PLUGIN_PATH}"
+	fi
+
+	if [[ "${SYN_DEFAULT_PATH}" && -d "${SYN_DEFAULT_PATH}" ]]; then
+		default_config_dir="${SYN_DEFAULT_PATH}"
+	fi
+}
+
 
 # Check if a plugin exists
 function syn_validate_plugin() {
@@ -313,60 +423,17 @@ function syn_get_plugin_name_from_fuzzy() {
 	printf "$1" | sed -e 's/[(\.].*//g'
 }
 
-# Generate and display a post-process summary
-function syn_post_summary() {
-	local summary_text="${src} > ${dst}"
-	if [[ "${vars[file]}" ]]; then
-		summary_text="[${vars[file]}] ${summary_text}"
-	fi
-
-	# Time reporting
-	local time_diff=$(( `date +"%s"` - $time_start ))
-	local time_diff_str=""
-	if (( time_diff > 3599 )); then
-		# hours, minutes, seconds
-		time_diff_str=$(date -u -d @"${time_diff}" +'%-Hh %-Mm %-Ss');
-	elif (( time_diff > 59 )); then
-		# minutes, seconds
-		time_diff_str=$(date -u -d @"${time_diff}" +'%-Mm %-Ss');
-	else
-		# seconds
-		time_diff_str=$(date -u -d @"${time_diff}" +'%-Ss');
-	fi
-
-	# Only
-	local plugins_str="<all>"
-	if [[ "${vars[only][$#]}" ]]; then
-		plugins_str="${vars[only][@]}"
-	fi
-
-	local tmp_configs=${config_files//"\n"/"\n\t\t"}
-
-	# Inline summary
-	printf "$(_ bg_green)
-	$(_ bold underline)SYN COMPLETE$(_ r_bold r_underline)
-
-	From:    $(_ bold)%s$(_ r_bold) to $(_ bold)%s$(_ r_bold)
-	Plugins: %s
-	Time:    $(_ bold)%s$(_ r_bold)
-	Config files: ${tmp_configs}
-$(_ bg_default)
-" "${src}" "${dst}" "${plugins_str}" "${time_diff_str}"
-
-	# Popup notification
-	if which notify-send >/dev/null; then
-		notify-send \
-			--category=transfer.complete \
-			--icon="${app_dir}/assets/icon.png" \
-			"Syn Complete (${time_diff_str})" \
-			"${summary_text}"
-	fi
-}
 
 
-################################################################################
-# COMMAND WRAPPING
-################################################################################
+
+	 ######  ##     ## ########     ##      ## ########     ###    ########  ########  #### ##    ##  ######
+	##    ## ###   ### ##     ##    ##  ##  ## ##     ##   ## ##   ##     ## ##     ##  ##  ###   ## ##    ##
+	##       #### #### ##     ##    ##  ##  ## ##     ##  ##   ##  ##     ## ##     ##  ##  ####  ## ##
+	##       ## ### ## ##     ##    ##  ##  ## ########  ##     ## ########  ########   ##  ## ## ## ##   ####
+	##       ##     ## ##     ##    ##  ##  ## ##   ##   ######### ##        ##         ##  ##  #### ##    ##
+	##    ## ##     ## ##     ##    ##  ##  ## ##    ##  ##     ## ##        ##         ##  ##   ### ##    ##
+	 ######  ##     ## ########      ###  ###  ##     ## ##     ## ##        ##        #### ##    ##  ######
+
 
 # Wrap SSH commands
 function syn_ssh_wrap() {
@@ -384,9 +451,16 @@ function syn_docker_wrap() {
 }
 
 
-################################################################################
-# INTEGRATED HELP
-################################################################################
+
+
+	##     ## ######## ##       ########      ######  ##    ##  ######  ######## ######## ##     ##
+	##     ## ##       ##       ##     ##    ##    ##  ##  ##  ##    ##    ##    ##       ###   ###
+	##     ## ##       ##       ##     ##    ##         ####   ##          ##    ##       #### ####
+	######### ######   ##       ########      ######     ##     ######     ##    ######   ## ### ##
+	##     ## ##       ##       ##                 ##    ##          ##    ##    ##       ##     ##
+	##     ## ##       ##       ##           ##    ##    ##    ##    ##    ##    ##       ##     ##
+	##     ## ######## ######## ##            ######     ##     ######     ##    ######## ##     ##
+
 
 function syn_render_help_commands() {
 	printf "$(_ bold)Commands:$(_ r_bold)\n"
@@ -455,7 +529,18 @@ function syn_cmd_help_help() {
 	printf "Show this help (or append a plugin name for specific help)"
 }
 
-# Show actions
+
+
+
+	 ######   #######  ########  ########     ######   #######  ##     ## ##     ##    ###    ##    ## ########   ######
+	##    ## ##     ## ##     ## ##          ##    ## ##     ## ###   ### ###   ###   ## ##   ###   ## ##     ## ##    ##
+	##       ##     ## ##     ## ##          ##       ##     ## #### #### #### ####  ##   ##  ####  ## ##     ## ##
+	##       ##     ## ########  ######      ##       ##     ## ## ### ## ## ### ## ##     ## ## ## ## ##     ##  ######
+	##       ##     ## ##   ##   ##          ##       ##     ## ##     ## ##     ## ######### ##  #### ##     ##       ##
+	##    ## ##     ## ##    ##  ##          ##    ## ##     ## ##     ## ##     ## ##     ## ##   ### ##     ## ##    ##
+	 ######   #######  ##     ## ########     ######   #######  ##     ## ##     ## ##     ## ##    ## ########   ######
+
+
 function syn_cmd_actions() {
 	local actions=""
 	for a in ${vars[only]}; do
@@ -565,9 +650,15 @@ function syn_cmd_install_help() {
 }
 
 
-################################################################################
-# CONFIGURATION FILE LOADING
-################################################################################
+
+
+	 ######   #######  ##    ## ######## ####  ######      ##        #######     ###    ########  #### ##    ##  ######
+	##    ## ##     ## ###   ## ##        ##  ##    ##     ##       ##     ##   ## ##   ##     ##  ##  ###   ## ##    ##
+	##       ##     ## ####  ## ##        ##  ##           ##       ##     ##  ##   ##  ##     ##  ##  ####  ## ##
+	##       ##     ## ## ## ## ######    ##  ##   ####    ##       ##     ## ##     ## ##     ##  ##  ## ## ## ##   ####
+	##       ##     ## ##  #### ##        ##  ##    ##     ##       ##     ## ######### ##     ##  ##  ##  #### ##    ##
+	##    ## ##     ## ##   ### ##        ##  ##    ##     ##       ##     ## ##     ## ##     ##  ##  ##   ### ##    ##
+	 ######   #######  ##    ## ##       ####  ######      ########  #######  ##     ## ########  #### ##    ##  ######
 
 # Config file loading
 function syn_load_configs() {
@@ -660,9 +751,15 @@ function syn_load_plugins() {
 }
 
 
-################################################################################
-# PARSE LOADED DATA
-################################################################################
+
+
+	########     ###    ########   ######  #### ##    ##  ######
+	##     ##   ## ##   ##     ## ##    ##  ##  ###   ## ##    ##
+	##     ##  ##   ##  ##     ## ##        ##  ####  ## ##
+	########  ##     ## ########   ######   ##  ## ## ## ##   ####
+	##        ######### ##   ##         ##  ##  ##  #### ##    ##
+	##        ##     ## ##    ##  ##    ##  ##  ##   ### ##    ##
+	##        ##     ## ##     ##  ######  #### ##    ##  ######
 
 # List all or requested actions (eg --only rsync,after)
 function syn_parse_actions() {
@@ -759,6 +856,7 @@ function syn_parse_parameters() {
 	done
 }
 
+
 # Get the available plugins
 function syn_parse_plugins() {
 	plugins=()
@@ -786,6 +884,7 @@ function syn_parse_plugins() {
 	done
 }
 
+
 # Do we need to show the help?
 function syn_check_help_request() {
 	if [[ "$#" == 0 || "$cmd" == "help" || ( "$#" == 2 && "${vars[file]}" ) ]]; then
@@ -795,9 +894,16 @@ function syn_check_help_request() {
 }
 
 
-################################################################################
-# VALIDATION HELPERS
-################################################################################
+
+
+	##     ##    ###    ##       #### ########     ###    ######## ####  #######  ##    ##
+	##     ##   ## ##   ##        ##  ##     ##   ## ##      ##     ##  ##     ## ###   ##
+	##     ##  ##   ##  ##        ##  ##     ##  ##   ##     ##     ##  ##     ## ####  ##
+	##     ## ##     ## ##        ##  ##     ## ##     ##    ##     ##  ##     ## ## ## ##
+	 ##   ##  ######### ##        ##  ##     ## #########    ##     ##  ##     ## ##  ####
+	  ## ##   ##     ## ##        ##  ##     ## ##     ##    ##     ##  ##     ## ##   ###
+	   ###    ##     ## ######## #### ########  ##     ##    ##    ####  #######  ##    ##
+
 
 # Require two environments
 function syn_validate_allow() {
@@ -822,6 +928,7 @@ function syn_validate_allow() {
 	fi
 }
 
+
 # Require one environment
 function syn_validate_require_one_env() {
 	# Is the environment set?
@@ -833,6 +940,7 @@ function syn_validate_require_one_env() {
 		syn_error "Environment '${src}' doesn't exist"
 	fi
 }
+
 
 # Require two environments
 function syn_validate_require_two_envs() {
@@ -854,9 +962,16 @@ function syn_validate_require_two_envs() {
 }
 
 
-################################################################################
-# COSMETICS
-################################################################################
+
+
+	   ###     ######  ######## ##     ##    ###    ##          ######## ##     ## #### ##    ##  ######
+	  ## ##   ##    ##    ##    ##     ##   ## ##   ##             ##    ##     ##  ##  ###   ## ##    ##
+	 ##   ##  ##          ##    ##     ##  ##   ##  ##             ##    ##     ##  ##  ####  ## ##
+	##     ## ##          ##    ##     ## ##     ## ##             ##    #########  ##  ## ## ## ##   ####
+	######### ##          ##    ##     ## ######### ##             ##    ##     ##  ##  ##  #### ##    ##
+	##     ## ##    ##    ##    ##     ## ##     ## ##             ##    ##     ##  ##  ##   ### ##    ##
+	##     ##  ######     ##     #######  ##     ## ########       ##    ##     ## #### ##    ##  ######
+
 
 # The banner
 function syn_banner() {
@@ -864,7 +979,7 @@ function syn_banner() {
     _____
    / ____|
   | (___  _   _ _ __     $(_ green r_bold)Version: v%s$(_ lightgreen bold)
-   \___ \| | | | '_ \ 
+   \___ \| | | | '_ \
    ____) | |_| | | | |   $(_ green r_bold)Author:  %s$(_ lightgreen bold)
   |_____/ \__, |_| |_|
            __/ |         $(_ green r_bold)Website: %s$(_ lightgreen bold)
@@ -873,10 +988,6 @@ function syn_banner() {
 $(_ reset)" "${_SYN_VERSION}" "${_SYN_AUTHOR}" "${_SYN_WEBSITE}"
 }
 
-
-################################################################################
-# THE ACTUAL THING
-################################################################################
 
 # Do the actual synchronising
 function syn_cmd_sync() {
@@ -917,6 +1028,94 @@ function syn_cmd_sync() {
 }
 
 
+# Generate and display a post-process summary
+function syn_post_summary() {
+	local summary_text="${src} > ${dst}"
+	if [[ "${vars[file]}" ]]; then
+		summary_text="[${vars[file]}] ${summary_text}"
+	fi
+
+	# Time reporting
+	local time_diff=$(( `date +"%s"` - $time_start ))
+	local time_diff_str=""
+	if (( time_diff > 3599 )); then
+		# hours, minutes, seconds
+		time_diff_str=$(date -u -d @"${time_diff}" +'%-Hh %-Mm %-Ss');
+	elif (( time_diff > 59 )); then
+		# minutes, seconds
+		time_diff_str=$(date -u -d @"${time_diff}" +'%-Mm %-Ss');
+	else
+		# seconds
+		time_diff_str=$(date -u -d @"${time_diff}" +'%-Ss');
+	fi
+
+	# Only
+	local plugins_str="<all>"
+	if [[ "${vars[only][$#]}" ]]; then
+		plugins_str="${vars[only][@]}"
+	fi
+
+	local tmp_configs=${config_files//"\n"/"\n\t\t"}
+
+	# Inline summary
+	printf "$(_ bg_green)
+	$(_ bold underline)SYN COMPLETE$(_ r_bold r_underline)
+
+	From:    $(_ bold)%s$(_ r_bold) to $(_ bold)%s$(_ r_bold)
+	Plugins: %s
+	Time:    $(_ bold)%s$(_ r_bold)
+	Config files: ${tmp_configs}
+$(_ bg_default)
+" "${src}" "${dst}" "${plugins_str}" "${time_diff_str}"
+
+	# Popup notification
+	if which notify-send >/dev/null; then
+		notify-send \
+			--category=transfer.complete \
+			--icon="${app_dir}/assets/icon.png" \
+			"Syn Complete (${time_diff_str})" \
+			"${summary_text}"
+	fi
+}
+
+
+# Generate autocomplete results for CLI if needed
+function syn_check_autocomplete_request() {
+	if [[ $autocomplete == false ]]; then
+		return
+	fi
+
+	local current="${vars[autocomplete-current]}"
+	local previous="${vars[autocomplete-previous]}"
+
+	# Suggest values for the current --var
+	if [[ "${previous}" ]]; then
+		for v in "${!vars[@]}"; do
+			if [[ "${previous}" == "--${v}" ]]; then
+				# syn_var_after-only_complete
+				local f="syn_var_${v}_autocomplete"
+				if function_exists "${f}"; then
+					eval "${f}" "${current}"
+				fi
+				exit
+			fi
+		done
+	fi
+
+	# Print environments if they're not already set
+	if [[ -z $dst ]]; then
+		printf "%s " "${environments[@]}"
+	fi
+
+	# todo: Remove flags/commands/vars that are already part of the command
+	printf "\-\-%s " "${!flags_help[@]}"
+	printf "\-\-%s " "${!commands[@]}"
+	printf "\-\-%s " "${!vars_help[@]}"
+
+	exit
+}
+
+
 # Main processing function
 function main() {
 	# Load and parse everything
@@ -936,42 +1135,6 @@ function main() {
 	eval "syn_cmd_${cmd}"
 
 	# Let's get out of here
-	exit
-}
-
-function syn_check_autocomplete_request() {
-	
-	if [[ $autocomplete == false ]]; then
-		return
-	fi
-
-	local current="${vars[autocomplete-current]}"
-	local previous="${vars[autocomplete-previous]}"
-
-	# Suggest values for the current --var
-	if [[ "${previous}" ]]; then
-		for v in "${!vars[@]}"; do
-			if [[ "${previous}" == "--${v}" ]]; then
-				# syn_var_after-only_complete
-				local f="syn_var_${v}_complete"
-				if function_exists "${f}"; then
-					eval "${f}" "${current}"
-				fi
-				exit
-			fi
-		done
-	fi
-
-	# Print environments if they're not already set
-	if [[ -z $dst ]]; then
-		printf "%s " "${environments[@]}"
-	fi
-
-	# todo: Remove flags/commands/vars that are already part of the command
-	printf "\-\-%s " "${!flags_help[@]}"
-	printf "\-\-%s " "${!commands[@]}"
-	printf "\-\-%s " "${!vars_help[@]}"
-
 	exit
 }
 
