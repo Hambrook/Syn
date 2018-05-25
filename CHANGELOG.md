@@ -4,11 +4,20 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ## [_next release_]
 
+### Added
+
+- [core] Add core functions to take weight off the plugins (mostly with kv fields)
+- [core] Add autocomplete for `--only`
+
 ### Fixed
 
 - [rsync] Fix `--rsync-only` not processing non-default dirs even when told to
 - [docs] Fix documenation and add "zero dependencies" line
 - [docs] Remove `chmod` line from installation instructions
+
+### Changed
+
+- [core] Move lots of functions to lib files :)
 
 
 ## [0.6.0] 2018-05-24

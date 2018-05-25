@@ -1,34 +1,6 @@
 # Library file for Syn
 
 
-# Autocomplete for vars
-function syn_autocomplete_kv_field() {
-	local config_key="${1}"
-	declare -a valid_existing
-	declare -a suggestions
-
-	# Get all valid keys
-	syn_kv_field_to_filtered_k_array suggestions "${config_key}" "*"
-
-	# Get keys already entered on the CLI unless partial or invalid
-	IFS=$',' read -rd '' -a existing <<<"${2}"
-	for linekey in "${existing[@]}"; do
-		if in_array "${linekey}" suggestions; then
-			valid_existing+=("${linekey}")
-		fi
-	done
-
-	prefix=$(join "," "${valid_existing[@]}")
-	for k in "${!suggestions[@]}"; do
-		if [[ "${#valid_existing[@]}" == 0 ]]; then
-			echo "${suggestions[${k}]}"
-		elif ! in_array "${suggestions[${k}]}" existing; then
-			echo "${prefix},${suggestions[${k}]}"
-		fi
-	done
-}
-
-
 # Get a filtered key/value array from a key/value field
 # syn_kv_field_to_filtered_kv_array result_arr "local/after/src"
 function syn_kv_field_to_filtered_kv_array() {

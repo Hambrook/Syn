@@ -377,43 +377,6 @@ $(_ bg_default)
 }
 
 
-# Generate autocomplete results for CLI if needed
-function syn_check_autocomplete_request() {
-	if [[ $autocomplete == false ]]; then
-		return
-	fi
-
-	local current="${vars[autocomplete-current]}"
-	local previous="${vars[autocomplete-previous]}"
-
-	# Suggest values for the current --var
-	if [[ "${previous}" ]]; then
-		for v in "${!vars[@]}"; do
-			if [[ "${previous}" == "--${v}" ]]; then
-				# syn_var_after-only_complete
-				local f="syn_var_${v}_autocomplete"
-				if function_exists "${f}"; then
-					eval "${f}" "${current}"
-				fi
-				exit
-			fi
-		done
-	fi
-
-	# Print environments if they're not already set
-	if [[ -z $dst ]]; then
-		printf "%s " "${environments[@]}"
-	fi
-
-	# todo: Remove flags/commands/vars that are already part of the command
-	printf "\-\-%s " "${!flags_help[@]}"
-	printf "\-\-%s " "${!commands[@]}"
-	printf "\-\-%s " "${!vars_help[@]}"
-
-	exit
-}
-
-
 # Main processing function
 function main() {
 	# Load and parse everything
