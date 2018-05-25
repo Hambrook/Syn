@@ -29,11 +29,25 @@
 # [ ] Maybe load a single location as global config, maybe ~/.syn/config
 # [ ] Add shorthand parameters?
 # [ ] Enable dumping of sample config from each plugin?
-# [ ] RSYNC: Add excludes list
+
+
+
 
 _SYN_VERSION=0.6
 _SYN_AUTHOR="Rick Hambrook"
 _SYN_WEBSITE="https://www.rickhambrook.com"
+
+
+
+
+	##     ##    ###    ########  ####    ###    ########  ##       ########  ######
+	##     ##   ## ##   ##     ##  ##    ## ##   ##     ## ##       ##       ##    ##
+	##     ##  ##   ##  ##     ##  ##   ##   ##  ##     ## ##       ##       ##
+	##     ## ##     ## ########   ##  ##     ## ########  ##       ######    ######
+	 ##   ##  ######### ##   ##    ##  ######### ##     ## ##       ##             ##
+	  ## ##   ##     ## ##    ##   ##  ##     ## ##     ## ##       ##       ##    ##
+	   ###    ##     ## ##     ## #### ##     ## ########  ######## ########  ######
+
 
 # Initial settings
 declare cmd="sync"
@@ -55,6 +69,7 @@ declare plugin_dir_custom
 declare default_config_dir
 declare colour_enabled=true
 declare time_start=`date +"%s"`
+declare -A formatting   # must be declared here, not in lib file
 
 # Default settings for plugins to extend
 declare -A config
@@ -85,460 +100,52 @@ declare -A vars_help=(
 
 
 
-
-	 ######   #######  ##        #######  ##     ## ########   ######
-	##    ## ##     ## ##       ##     ## ##     ## ##     ## ##    ##
-	##       ##     ## ##       ##     ## ##     ## ##     ## ##
-	##       ##     ## ##       ##     ## ##     ## ########   ######
-	##       ##     ## ##       ##     ## ##     ## ##   ##         ##
-	##    ## ##     ## ##       ##     ## ##     ## ##    ##  ##    ##
-	 ######   #######  ########  #######   #######  ##     ##  ######
-
-
-# Formatting vars
-declare -A formatting=(
-	# Formatting
-	[normal]=0
-	[reset]=0
-	[bold]=1
-	[dim]=2
-	[underline]=4
-	[ul]=4
-	[blink]=5
-	[reverse]=7
-	[hidden]=8
-	# Reset formatting
-	[r_bold]=21
-	[r_dim]=22
-	[r_underline]=24
-	[r_ul]=24
-	[r_blink]=25
-	[r_reverse]=27
-	[r_hidden]=28
-	# Foreground colours
-	[default]=39
-	[black]=30
-	[red]=31
-	[green]=32
-	[yellow]=33
-	[blue]=34
-	[magenta]=35
-	[cyan]=36
-	[lightgray]=37
-	[darkgray]=90
-	[lightred]=91
-	[lightgreen]=92
-	[lightyellow]=93
-	[lightblue]=94
-	[lightmagenta]=95
-	[lightcyan]=96
-	[white]=97
-	# Background colours
-	[bg_default]=49
-	[bg_black]=40
-	[bg_red]=41
-	[bg_green]=42
-	[bg_yellow]=43
-	[bg_blue]=44
-	[bg_magenta]=45
-	[bg_cyan]=46
-	[bg_lightgray]=47
-	[bg_darkgray]=100
-	[bg_lightred]=101
-	[bg_lightgreen]=102
-	[bg_lightyellow]=103
-	[bg_lightblue]=104
-	[bg_lightmagenta]=105
-	[bg_lightcyan]=106
-	[bg_white]=107
-)
+	 ######   #######  ##     ## ##     ##    ###    ##    ## ########   ######
+	##    ## ##     ## ###   ### ###   ###   ## ##   ###   ## ##     ## ##    ##
+	##       ##     ## #### #### #### ####  ##   ##  ####  ## ##     ## ##
+	##       ##     ## ## ### ## ## ### ## ##     ## ## ## ## ##     ##  ######
+	##       ##     ## ##     ## ##     ## ######### ##  #### ##     ##       ##
+	##    ## ##     ## ##     ## ##     ## ##     ## ##   ### ##     ## ##    ##
+	 ######   #######  ##     ## ##     ## ##     ## ##    ## ########   ######
 
 
-# Get a formatting string
-function _() {
-	if [[ ! $# || $colour_enabled == false ]]; then
-		return
+# Do the actual synchronising
+function syn_cmd_sync() {
+	# Check if we have any configs set
+	if (( config_cnt == 0 )); then
+		syn_error "No config files were found"
 	fi
 
-	output=""
-	for var in "$@"; do
-		if array_key_exists $var formatting; then
-			if [[ $output != "" ]]; then
-				output="${output};"
-			fi
-			output="${output}${formatting[${var}]}"
+	syn_validate_require_two_envs
+
+	syn_validate_allow
+
+	if ${flags[dryrun]}; then
+		printf "$(_ bg_green)\n\tDRY RUN: No actions will be taken, commands will be output instead of run\n$(_ reset)\n\n"
+	fi
+
+	# Pre-process summary
+	printf "Proceeding to sync %s from $(_ bold)%s$(_ reset) to $(_ bold)%s$(_ reset)\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
+
+	# Check that all the actions exist
+	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
+		local p=$(syn_get_plugin_name_from_fuzzy $x)
+		if [[ ! $(syn_validate_plugin "$p") ]]; then
+			syn_error "Plugin '$p' not found"
 		fi
 	done
 
-	printf "\e[${output}m"
-}
-
-
-
-
-	##     ## ####  ######   ######     ##     ## ######## ##       ########  ######## ########   ######
-	###   ###  ##  ##    ## ##    ##    ##     ## ##       ##       ##     ## ##       ##     ## ##    ##
-	#### ####  ##  ##       ##          ##     ## ##       ##       ##     ## ##       ##     ## ##
-	## ### ##  ##   ######  ##          ######### ######   ##       ########  ######   ########   ######
-	##     ##  ##        ## ##          ##     ## ##       ##       ##        ##       ##   ##         ##
-	##     ##  ##  ##    ## ##    ##    ##     ## ##       ##       ##        ##       ##    ##  ##    ##
-	##     ## ####  ######   ######     ##     ## ######## ######## ##        ######## ##     ##  ######
-
-
-# Exit with an error and a non-successful exit code
-function syn_error() {
-	local error="${1:-"An unknown error has occured"}"
-	printf "$(_ red)Error: %s\n" "${error}$(_ reset)" 1>&2
-	exit 1
-}
-
-# Show a prompt for confirmation
-function syn_confirm() {
-	# $1 = Question
-	# $2 = default (y/true/n/false)
-
-	local prompt="y/N"
-	local default=1
-	if [[ $2 =~ ^[Yy].* ]]; then
-		prompt="Y/n"
-		default=0
-	fi
-
-	read -p "$(_ yellow)${1} [${prompt}]:$(_ reset) " response
-
-	if [[ $response =~ ^[Yy].* ]]; then
-		return 0
-	fi
-	if [[ $response = "" ]]; then
-		return $default
-	fi
-	return 1
-}
-
-# In Array
-function in_array() {
-	local haystack=${2}[@]
-	local needle=${1}
-	for i in ${!haystack}; do
-		if [[ ${i} == ${needle} ]]; then
-			return 0
-		fi
-	done
-	return 1
-}
-# Alternate version
-function in_array_string() {
-	local haystack="$2"
-	if [[ ! "$(declare -p haystack)" =~ "declare -a" ]]; then
-		haystack=($haystack)
-	fi
-	local needle=$1
-	local in=1
-	for element in "${haystack[@]}"; do
-		echo $element
-		if [[ $element == "$needle" ]]; then
-			in=0
-			break
-		fi
-	done
-	return $in
-}
-
-# Check if a function exists
-function function_exists() {
-	declare -f -F $1 > /dev/null
-	return $?
-}
-
-# Check if an array key exists
-function array_key_exists() {
-	eval '[ ${'$2'[$1]+muahaha} ]'
-}
-
-# Join array elements together
-function join() {
-	local IFS="$1"; shift; echo "$*"
-}
-
-
-
-
-	##    ## ##     ##    ######## #### ######## ##       ########   ######
-	##   ##  ##     ##    ##        ##  ##       ##       ##     ## ##    ##
-	##  ##   ##     ##    ##        ##  ##       ##       ##     ## ##
-	#####    ##     ##    ######    ##  ######   ##       ##     ##  ######
-	##  ##    ##   ##     ##        ##  ##       ##       ##     ##       ##
-	##   ##    ## ##      ##        ##  ##       ##       ##     ## ##    ##
-	##    ##    ###       ##       #### ######## ######## ########   ######
-
-
-# Autocomplete for vars
-function syn_autocomplete_kv_field() {
-	local config_key="${1}"
-	declare -a valid_existing
-	declare -a suggestions
-
-	# Get all valid keys
-	syn_kv_field_to_filtered_k_array suggestions "${config_key}" "*"
-
-	# Get keys already entered on the CLI unless partial or invalid
-	IFS=$',' read -rd '' -a existing <<<"${2}"
-	for linekey in "${existing[@]}"; do
-		if in_array "${linekey}" suggestions; then
-			valid_existing+=("${linekey}")
-		fi
+	# Run all the actions exist
+	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
+		printf "\n$(_ green bold)Running plugin: %s$(_ reset)\n" "$x"
+		local p=$(syn_get_plugin_name_from_fuzzy $x)
+		eval "syn_plugin_${p} \"${x}\""
 	done
 
-	prefix=$(join "," "${valid_existing[@]}")
-	for k in "${!suggestions[@]}"; do
-		if [[ "${#valid_existing[@]}" == 0 ]]; then
-			echo "${suggestions[${k}]}"
-		elif ! in_array "${suggestions[${k}]}" existing; then
-			echo "${prefix},${suggestions[${k}]}"
-		fi
-	done
-}
-
-# Get a filtered key/value array from a key/value field
-# syn_kv_field_to_filtered_kv_array result_arr "local/after/src"
-function syn_kv_field_to_filtered_kv_array() {
-	local -n arr="${1}"      # return var name passed by reference (no $ on calling line)
-	local config_key="${2}"  # config key, eg "live/after/dst"
-	local only="${3}"        # filter: eg "mysite,themes". "*" = ALL lines, "" = DEFAULT lines (without ! prefix)
-	local show_prefix=$4     # leave ! prefix on keys?
-	local cnt=0
-	local filter=""
-
-	IFS=$'\n' read -rd '' -a lines <<<"${config[${config_key}]}"
-	local pattern="^\s*(\!?)([^= ]*)(=?)(.*)"
-	#if [[ ! -z $only && ! $only == "*" ]]; then
-	#	pattern="^\s*(\!?)(${only//,/|})(=)(.*)"
-	#fi
-	# Filter using array instead of pattern so we can filter unnamed lines
-	if [[ ! $only == "*" ]]; then
-		filter=${only//,/ }
-	fi
-	for line in "${lines[@]}"; do
-		if [[ $line =~ $pattern ]]; then
-			# Remove non-defaults unless we want ALL
-			if [[ "${BASH_REMATCH[1]}" && -z $only ]]; then
-				continue
-			fi
-			k="${BASH_REMATCH[2]}"
-			v="${BASH_REMATCH[4]}"
-			# Is this row unnamed?
-			if [[ -z ${BASH_REMATCH[3]} ]]; then
-			(( cnt++ ))
-				k="unnamed-${cnt}"
-				v="${BASH_REMATCH[2]}"
-			fi
-
-			# Do filtering here so we can filter unnamed lines
-			if [[ $filter ]] && ! in_array $k filter; then
-				continue
-			fi
-
-			# Are we leaving the prefix on?
-			if [[ $show_prefix ]]; then
-				k="${BASH_REMATCH[1]}$k"
-			fi
-			: ${arr[${k}]:=${v}}
-		fi
-	done
-}
-
-# Get a filtered keys array from a key/value field
-# syn_kv_field_to_filtered_k_array result_arr "local/after/src"
-function syn_kv_field_to_filtered_k_array() {
-	local -n arr="${1}"
-	local config_key="${2}"
-	local only="${3}"
-	local show_prefix="${4}"
-	local -A tmp
-
-	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "${only}" "${show_prefix}"
-
-	arr=( "${!tmp[@]}" )
-}
-
-# Output kv field as list
-function syn_list_kv_field() {
-	local title="${1}"
-	local config_key="${2}"
-	local -A tmp
-
-	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "*" true
-	printf "\n$(_ bold)%s$(_ reset)\n" "${title}"
-	for k in "${!tmp[@]}"; do
-		printf "  %s=%s\n" "${k}" "${tmp[$k]}"
-	done
-	if (( ${#tmp[@]} == 0 )); then
-		printf "  <none>\n"
+	if ! ${flags[dryrun]} || ${flags[debug]}; then
+		syn_post_summary
 	fi
 }
-
-
-
-
-	 ######   #######  ########  ########
-	##    ## ##     ## ##     ## ##
-	##       ##     ## ##     ## ##
-	##       ##     ## ########  ######
-	##       ##     ## ##   ##   ##
-	##    ## ##     ## ##    ##  ##
-	 ######   #######  ##     ## ########
-
-
-# Initialise a few paths etc
-function syn_init() {
-	local real_path="${BASH_SOURCE[0]}"
-	if [[ -L "${real_path}" ]]; then
-		real_path="$(readlink "${real_path}")"
-	fi
-	app_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
-
-	plugin_dir_builtin="${app_dir}/plugins"
-
-	if [[ "${SYN_PLUGIN_PATH}" && -d "${SYN_PLUGIN_PATH}" ]]; then
-		plugin_dir_custom="${SYN_PLUGIN_PATH}"
-	fi
-
-	if [[ "${SYN_DEFAULT_PATH}" && -d "${SYN_DEFAULT_PATH}" ]]; then
-		default_config_dir="${SYN_DEFAULT_PATH}"
-	fi
-}
-
-
-# Check if a plugin exists
-function syn_validate_plugin() {
-	if [[ $(set | grep "syn_plugin_$1 ()") ]]; then
-		echo 1
-	else
-		echo ""
-	fi
-}
-
-# Get the actual plugin name from a potentially aliased (fuzzy) name... eg. rsync.webdirs
-function syn_get_plugin_name_from_fuzzy() {
-	printf "$1" | sed -e 's/[(\.].*//g'
-}
-
-
-
-
-	 ######  ##     ## ########     ##      ## ########     ###    ########  ########  #### ##    ##  ######
-	##    ## ###   ### ##     ##    ##  ##  ## ##     ##   ## ##   ##     ## ##     ##  ##  ###   ## ##    ##
-	##       #### #### ##     ##    ##  ##  ## ##     ##  ##   ##  ##     ## ##     ##  ##  ####  ## ##
-	##       ## ### ## ##     ##    ##  ##  ## ########  ##     ## ########  ########   ##  ## ## ## ##   ####
-	##       ##     ## ##     ##    ##  ##  ## ##   ##   ######### ##        ##         ##  ##  #### ##    ##
-	##    ## ##     ## ##     ##    ##  ##  ## ##    ##  ##     ## ##        ##         ##  ##   ### ##    ##
-	 ######  ##     ## ########      ###  ###  ##     ## ##     ## ##        ##        #### ##    ##  ######
-
-
-# Wrap SSH commands
-function syn_ssh_wrap() {
-	# $1 = SSH string
-	# $2 = command
-	printf "ssh %s %s" "$1" "$2"
-}
-
-# Wrap Docker commands
-function syn_docker_wrap() {
-	# $1 = docker container
-	# $2 = command
-	# $3 = additional flags
-	printf "docker exec %s %s %s" "$3" "$1" "$2"
-}
-
-
-
-
-	##     ## ######## ##       ########      ######  ##    ##  ######  ######## ######## ##     ##
-	##     ## ##       ##       ##     ##    ##    ##  ##  ##  ##    ##    ##    ##       ###   ###
-	##     ## ##       ##       ##     ##    ##         ####   ##          ##    ##       #### ####
-	######### ######   ##       ########      ######     ##     ######     ##    ######   ## ### ##
-	##     ## ##       ##       ##                 ##    ##          ##    ##    ##       ##     ##
-	##     ## ##       ##       ##           ##    ##    ##    ##    ##    ##    ##       ##     ##
-	##     ## ######## ######## ##            ######     ##     ######     ##    ######## ##     ##
-
-
-function syn_render_help_commands() {
-	printf "$(_ bold)Commands:$(_ r_bold)\n"
-	for c in ${!commands[*]}; do
-		printf "  --%-16s %s\n" "$c" "$(${commands[$c]})"
-	done
-}
-
-function syn_render_help_flags() {
-	printf "$(_ bold)Flags:$(_ r_bold)\n"
-	for f in ${!flags_help[*]}; do
-		printf "  --%-16s %s\n" "$f" "${flags_help[$f]}"
-	done
-}
-
-function syn_render_help_vars() {
-	printf "$(_ bold)Vars:$(_ r_bold)\n"
-	for v in ${!vars_help[*]}; do
-		printf "  --%-16s %s\n" "$v" "${vars_help[$v]}"
-	done
-}
-
-# Help. Will show specific help from a plugin, or general help with
-# lists of environments and plugins
-function syn_cmd_help() {
-	syn_banner
-	if [[ "$1" ]]; then
-		if [[ $(set | grep "syn_plugin_${1}_help ()") ]]; then
-			printf "Showing help for plugin: %s\n\n" "$1"
-			eval "syn_plugin_${1}_help"
-			exit
-		else
-			syn_error "Plugin '$1' not found"
-		fi
-	fi
-
-	printf "
-A pluggable system to synchronise between environments with builtin plugins
-for mysql and rsync.
-
-Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]
-
-$(_ bold)Parameters:$(_ r_bold)
-  SRC                Must match an environment from the loaded config files
-  DST                Must match an environment from the loaded config files
-
-$(syn_render_help_commands)
-
-$(syn_render_help_flags)
-
-$(syn_render_help_vars)
-
-$(syn_cmd_envs)
-
-$(syn_cmd_plugins)
-
-$(syn_cmd_paths)
-
-$(syn_cmd_configs)
-"
-# | less
-
-	exit
-}
-function syn_cmd_help_help() {
-	printf "Show this help (or append a plugin name for specific help)"
-}
-
-
-
-
-	 ######   #######  ########  ########     ######   #######  ##     ## ##     ##    ###    ##    ## ########   ######
-	##    ## ##     ## ##     ## ##          ##    ## ##     ## ###   ### ###   ###   ## ##   ###   ## ##     ## ##    ##
-	##       ##     ## ##     ## ##          ##       ##     ## #### #### #### ####  ##   ##  ####  ## ##     ## ##
-	##       ##     ## ########  ######      ##       ##     ## ## ### ## ## ### ## ##     ## ## ## ## ##     ##  ######
-	##       ##     ## ##   ##   ##          ##       ##     ## ##     ## ##     ## ######### ##  #### ##     ##       ##
-	##    ## ##     ## ##    ##  ##          ##    ## ##     ## ##     ## ##     ## ##     ## ##   ### ##     ## ##    ##
-	 ######   #######  ##     ## ########     ######   #######  ##     ## ##     ## ##     ## ##    ## ########   ######
 
 
 function syn_cmd_actions() {
@@ -652,89 +259,57 @@ function syn_cmd_install_help() {
 
 
 
-	 ######   #######  ##    ## ######## ####  ######      ##        #######     ###    ########  #### ##    ##  ######
-	##    ## ##     ## ###   ## ##        ##  ##    ##     ##       ##     ##   ## ##   ##     ##  ##  ###   ## ##    ##
-	##       ##     ## ####  ## ##        ##  ##           ##       ##     ##  ##   ##  ##     ##  ##  ####  ## ##
-	##       ##     ## ## ## ## ######    ##  ##   ####    ##       ##     ## ##     ## ##     ##  ##  ## ## ## ##   ####
-	##       ##     ## ##  #### ##        ##  ##    ##     ##       ##     ## ######### ##     ##  ##  ##  #### ##    ##
-	##    ## ##     ## ##   ### ##        ##  ##    ##     ##       ##     ## ##     ## ##     ##  ##  ##   ### ##    ##
-	 ######   #######  ##    ## ##       ####  ######      ########  #######  ##     ## ########  #### ##    ##  ######
+	 #######  ######## ##     ## ######## ########      ######  ######## ##     ## ######## ########
+	##     ##    ##    ##     ## ##       ##     ##    ##    ##    ##    ##     ## ##       ##
+	##     ##    ##    ##     ## ##       ##     ##    ##          ##    ##     ## ##       ##
+	##     ##    ##    ######### ######   ########      ######     ##    ##     ## ######   ######
+	##     ##    ##    ##     ## ##       ##   ##            ##    ##    ##     ## ##       ##
+	##     ##    ##    ##     ## ##       ##    ##     ##    ##    ##    ##     ## ##       ##
+	 #######     ##    ##     ## ######## ##     ##     ######     ##     #######  ##       ##
 
-# Config file loading
-function syn_load_configs() {
-	config_cnt=0
-	for filename in ".syn.global" ".syn" ".syn.local"; do
-		local currpath="${PWD}"
-		while [[ "${currpath}" != "/" ]]; do
-			if [[ -r "${currpath}/${filename}" ]]; then
-				config_files="${config_files}\n${currpath}/${filename}"
-				if ${flags[debug]}; then
-					printf "Loading config file: %s\n" "${currpath}/${filename}"
-				fi
-				if [[ -z "${local_root}" ]]; then
-					local_root="${currpath}"
-				fi
-				. "${currpath}/${filename}"
-				(( config_cnt++ ))
-			fi
-			currpath=$(cd "${currpath}/.." && pwd) || syn_error "Invalid path"
-		done
-	done
+
+# The banner
+function syn_banner() {
+	printf "$(_ lightgreen bold)
+    _____
+   / ____|
+  | (___  _   _ _ __     $(_ green r_bold)Version: v%s$(_ lightgreen bold)
+   \___ \| | | | '_ \ 
+   ____) | |_| | | | |   $(_ green r_bold)Author:  %s$(_ lightgreen bold)
+  |_____/ \__, |_| |_|
+           __/ |         $(_ green r_bold)Website: %s$(_ lightgreen bold)
+          |___/
+
+$(_ reset)" "${_SYN_VERSION}" "${_SYN_AUTHOR}" "${_SYN_WEBSITE}"
 }
 
-# Load specific file (from --file parameter)
-function syn_load_config_specific() {
-	local old_count=$config_cnt
-	if [[ -d "${default_config_dir}" && "${vars[file]}" == "." ]]; then
-		# If there is a default location and "." was set as file
-		# then we'll use the current directory name as the filename
-		# and only check the default location for the config file.
-		vars[file]="${default_config_dir}/$(pwd | sed -e 's/.*\///g')"
-		for f in "${vars[file]}" "${vars[file]}.syn"; do
-			if [[ -f "$f" ]]; then
-				config_files="${config_files}\n${f}"
-				if ${flags[debug]}; then
-					printf "Loading config file: %s\n" "$f"
-				fi
-				. "$f"
-				(( config_cnt++ ))
-			fi
-		done
-	elif [[ "${vars[file]}" ]]; then
-		for f in "${vars[file]}" "${vars[file]}.syn"; do
-			if [[ -f "$f" ]]; then
-				# Otherwise we'll check the current dir for the named file
-				config_files="${config_files}\n${f}"
-				if ${flags[debug]}; then
-					printf "Loading config file: %s\n" "$f"
-				fi
-				. "$f"
-				(( config_cnt++ ))
-			elif [[ -d "${default_config_dir}" && -f "${default_config_dir}/${f}" ]]; then
-				# And the default location too
-				config_files="${config_files}\n${default_config_dir}/${f}"
-				if ${flags[debug]}; then
-					printf "Loading config file: %s\n" "${default_config_dir}/${f}"
-				fi
-				. "${default_config_dir}/${f}"
-				(( config_cnt++ ))
-			fi
+
+# Initialise a few paths etc
+function syn_init() {
+	local real_path="${BASH_SOURCE[0]}"
+	if [[ -L "${real_path}" ]]; then
+		real_path="$(readlink "${real_path}")"
+	fi
+	app_dir="$( cd "$( dirname "${real_path}" )" && pwd )"
+
+	plugin_dir_builtin="${app_dir}/plugins"
+
+	if [[ "${SYN_PLUGIN_PATH}" && -d "${SYN_PLUGIN_PATH}" ]]; then
+		plugin_dir_custom="${SYN_PLUGIN_PATH}"
+	fi
+
+	if [[ "${SYN_DEFAULT_PATH}" && -d "${SYN_DEFAULT_PATH}" ]]; then
+		default_config_dir="${SYN_DEFAULT_PATH}"
+	fi
+
+	# Load libs
+	if [[ -d "$plugin_dir_builtin" ]]; then
+		for filename in ${app_dir}/lib/*.bash; do
+			. "$filename"
 		done
 	fi
 
-	if [[ "${vars[file]}" ]] && (( "$old_count" == "$config_cnt" )); then
-		local err=""
-		if [[ -z "${SYN_DEFAULT_PATH}" ]]; then
-			err=". Also, SYN_DEFAULT_PATH is not set."
-		elif [[ ! -d "${SYN_DEFAULT_PATH}" ]]; then
-			err=". Also, SYN_DEFAULT_PATH (${SYN_DEFAULT_PATH}) is not valid."
-		fi
-		syn_error "Could not find specific config file (${vars[file]})${err}"
-	fi
-}
-
-# Load bundled and external plugins
-function syn_load_plugins() {
+	# Load plugins
 	plugin_cnt=0
 	if [[ -d "$plugin_dir_builtin" ]]; then
 		for filename in ${plugin_dir_builtin}/*.synPlugin; do
@@ -747,283 +322,6 @@ function syn_load_plugins() {
 			. "$filename"
 			(( plugin_cnt++ ))
 		done
-	fi
-}
-
-
-
-
-	########     ###    ########   ######  #### ##    ##  ######
-	##     ##   ## ##   ##     ## ##    ##  ##  ###   ## ##    ##
-	##     ##  ##   ##  ##     ## ##        ##  ####  ## ##
-	########  ##     ## ########   ######   ##  ## ## ## ##   ####
-	##        ######### ##   ##         ##  ##  ##  #### ##    ##
-	##        ##     ## ##    ##  ##    ##  ##  ##   ### ##    ##
-	##        ##     ## ##     ##  ######  #### ##    ##  ######
-
-# List all or requested actions (eg --only rsync,after)
-function syn_parse_actions() {
-	declare -A tmp
-
-	# List all actions if none are specifically requested
-	if [[ "${vars[only]}" == "" ]]; then
-		local pattern="^[^/]+/([^_][^/]+)"
-		for p in "${!config[@]}"; do
-			if [[ $p =~ $pattern ]]; then
-				: ${tmp[${BASH_REMATCH[1]}]:=${BASH_REMATCH[1]}}
-			fi
-		done
-	else
-		# Actions were set at the command line, comma separated
-		tmp=${vars[only]/,/ }
-	fi
-
-	# Wipe it out so we can add them back, in execution order
-	vars[only]=""
-
-	# Need to sort by plugin exec order
-	for p in "${plugins_exec[@]}"; do
-		local pattern="^(${p}([^a-zA-Z0-9]+.*)?)"
-		for k in "${tmp[@]}"; do
-			if [[ $k =~ $pattern ]]; then
-				vars[only]="${vars[only]} ${k}"
-			fi
-		done
-	done
-}
-
-# Get the available plugins
-function syn_parse_commands() {
-	for c in $(compgen -A function syn_cmd_); do
-		local cmd="${c//syn_cmd_/}"
-		if [[ $c =~ ^syn_cmd_(.+?)_help$ ]]; then
-			commands[${BASH_REMATCH[1]}]="$c"
-		fi
-	done
-}
-
-# Get configured environment names
-function syn_parse_environments() {
-	environments=""
-	local pattern="^[^_][^/]+"
-	for e in "${!config[@]}"; do
-		if [[ $e =~ $pattern ]]; then
-			: ${environments[$BASH_REMATCH]:=$BASH_REMATCH}
-		fi
-	done
-}
-
-# Parameter loading
-function syn_parse_parameters() {
-	if [[ $1 == "__AUTOCOMPLETE__" ]]; then
-		autocomplete=true
-		shift
-	fi
-
-	# Tried a switch statement, this more efficient
-	for (( i=1; i<=$#; i++ )); do
-		# Strip leading dashes and test for flags, commands and vars
-		if [[ ${!i} =~ ^\-\-(.*) ]]; then
-			# Is it a flag, eg "--dryrun"?
-			if array_key_exists "${BASH_REMATCH[1]}" flags; then
-				flags[${BASH_REMATCH[1]}]=true
-			# Is it a command, eg "--help"?
-			elif array_key_exists "${BASH_REMATCH[1]}" commands; then
-				cmd="${BASH_REMATCH[1]}"
-			# Is it a space-separated var, eg "--only rsync"?
-			elif array_key_exists "${BASH_REMATCH[1]}" vars; then
-				(( i++ ))
-				vars[${BASH_REMATCH[1]}]="${!i}"
-			# Or even an equals separated var, eg "--only=rsync"?
-			elif [[ "${BASH_REMATCH[1]}" == *"="* ]]; then
-				local varinfo=(${BASH_REMATCH[1]//=/ })
-				if array_key_exists "${varinfo[0]}" vars; then
-					vars[${varinfo[0]}]="${varinfo[1]}"
-				fi
-			fi
-		# If there are no leading dashes then it must be an environment
-		elif [[ ! ${!i} =~ ^- ]]; then
-			if [[ ! "$src" ]]; then
-				src="${!i}"
-			elif [[ ! "$dst" ]]; then
-				dst="${!i}"
-			elif [[ $autocomplete == false ]]; then
-				syn_error "Unrecognised parameter '${!i}'"
-			fi
-		elif [[ $autocomplete == false ]]; then
-			syn_error "Unrecognised parameter '${!i}'"
-		fi
-	done
-}
-
-
-# Get the available plugins
-function syn_parse_plugins() {
-	plugins=()
-	plugins_exec=()
-	declare -A plugins_raw
-	for p in $(compgen -A function syn_plugin_); do
-		if [[ $p =~ _help$ ]]; then
-			continue
-		fi
-		local plugin_name="${p//syn_plugin_/}"
-		local plugin_key="${exec_order[${plugin_name}]}"
-		if [[ ! "$plugin_key" ]]; then
-			plugin_key=50
-		fi
-		plugins+=("${plugin_name}")
-		plugin_key="${plugin_key}_${plugin_name}"
-		plugins_raw[${plugin_key}]="${plugin_name}"
-	done
-
-	local indexes=(${!plugins_raw[@]})
-	IFS=$'\n' sorted=($(sort <<<"${indexes[*]}"))
-	unset IFS
-	for k in "${sorted[@]}"; do
-		plugins_exec+=("${plugins_raw[$k]}")
-	done
-}
-
-
-# Do we need to show the help?
-function syn_check_help_request() {
-	if [[ "$#" == 0 || "$cmd" == "help" || ( "$#" == 2 && "${vars[file]}" ) ]]; then
-		syn_cmd_help $src || $dst
-		exit
-	fi
-}
-
-
-
-
-	##     ##    ###    ##       #### ########     ###    ######## ####  #######  ##    ##
-	##     ##   ## ##   ##        ##  ##     ##   ## ##      ##     ##  ##     ## ###   ##
-	##     ##  ##   ##  ##        ##  ##     ##  ##   ##     ##     ##  ##     ## ####  ##
-	##     ## ##     ## ##        ##  ##     ## ##     ##    ##     ##  ##     ## ## ## ##
-	 ##   ##  ######### ##        ##  ##     ## #########    ##     ##  ##     ## ##  ####
-	  ## ##   ##     ## ##        ##  ##     ## ##     ##    ##     ##  ##     ## ##   ###
-	   ###    ##     ## ######## #### ########  ##     ##    ##    ####  #######  ##    ##
-
-
-# Require two environments
-function syn_validate_allow() {
-	# Check if we're pushing to a live environment
-	local to=$dst || $src
-
-	# Check if we're pushing to a disallowed environment
-	if [[ "${config[${to}/_allow]}" == false ]]; then
-		syn_error "Pushing to this environment is not allowed"
-		exit
-	fi
-
-	if [[ $to =~ (live|prod) || "${config[${to}/_allow]}" == "warn" ]]; then
-		if ${flags[force]}; then
-			printf "$(_ bg_yellow)\n\tWARNING: Forcing override of dangerous deployment warning\n$(_ reset)\n"
-			#printf "$(_ yellow bold)WARNING: Forcing override of dangerous deployment warning$(_ reset)\n"
-		elif ! syn_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
-			printf "Aborting\n"
-			exit
-		fi
-		printf "\n"
-	fi
-}
-
-
-# Require one environment
-function syn_validate_require_one_env() {
-	# Is the environment set?
-	if [[ ! "$src" ]]; then
-		syn_error "You must specify an environment"
-	fi
-	# Is the environment valid?
-	if [[ ! "${environments[$src]}" ]]; then
-		syn_error "Environment '${src}' doesn't exist"
-	fi
-}
-
-
-# Require two environments
-function syn_validate_require_two_envs() {
-	# Are both environments set?
-	if [[ ! ( "$src" && "$dst" ) ]]; then
-		syn_error "You must specify two environments"
-	fi
-	# Is the src environment valid?
-	if [[ ! "${environments[$src]}" ]]; then
-		syn_error "Source environment '$src' doesn't exist"
-	fi
-	# Is the dst environment valid?
-	if [[ ! "${environments[$dst]}" ]]; then
-		syn_error "Destination environment '$dst' doesn't exist"
-	fi
-	if [[ "$src" == "$dst" ]]; then
-		syn_error "Souce and destination environments cannot be the same"
-	fi
-}
-
-
-
-
-	   ###     ######  ######## ##     ##    ###    ##          ######## ##     ## #### ##    ##  ######
-	  ## ##   ##    ##    ##    ##     ##   ## ##   ##             ##    ##     ##  ##  ###   ## ##    ##
-	 ##   ##  ##          ##    ##     ##  ##   ##  ##             ##    ##     ##  ##  ####  ## ##
-	##     ## ##          ##    ##     ## ##     ## ##             ##    #########  ##  ## ## ## ##   ####
-	######### ##          ##    ##     ## ######### ##             ##    ##     ##  ##  ##  #### ##    ##
-	##     ## ##    ##    ##    ##     ## ##     ## ##             ##    ##     ##  ##  ##   ### ##    ##
-	##     ##  ######     ##     #######  ##     ## ########       ##    ##     ## #### ##    ##  ######
-
-
-# The banner
-function syn_banner() {
-	printf "$(_ lightgreen bold)
-    _____
-   / ____|
-  | (___  _   _ _ __     $(_ green r_bold)Version: v%s$(_ lightgreen bold)
-   \___ \| | | | '_ \
-   ____) | |_| | | | |   $(_ green r_bold)Author:  %s$(_ lightgreen bold)
-  |_____/ \__, |_| |_|
-           __/ |         $(_ green r_bold)Website: %s$(_ lightgreen bold)
-          |___/
-
-$(_ reset)" "${_SYN_VERSION}" "${_SYN_AUTHOR}" "${_SYN_WEBSITE}"
-}
-
-
-# Do the actual synchronising
-function syn_cmd_sync() {
-	# Check if we have any configs set
-	if (( config_cnt == 0 )); then
-		syn_error "No config files were found"
-	fi
-
-	syn_validate_require_two_envs
-
-	syn_validate_allow
-
-	if ${flags[dryrun]}; then
-		printf "$(_ bg_green)\n\tDRY RUN: No actions will be taken, commands will be output instead of run\n$(_ reset)\n\n"
-	fi
-
-	# Pre-process summary
-	printf "Proceeding to sync %s from $(_ bold)%s$(_ reset) to $(_ bold)%s$(_ reset)\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
-
-	# Check that all the actions exist
-	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
-		local p=$(syn_get_plugin_name_from_fuzzy $x)
-		if [[ ! $(syn_validate_plugin "$p") ]]; then
-			syn_error "Plugin '$p' not found"
-		fi
-	done
-
-	# Run all the actions exist
-	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
-		printf "\n$(_ green bold)Running plugin: %s$(_ reset)\n" "$x"
-		local p=$(syn_get_plugin_name_from_fuzzy $x)
-		eval "syn_plugin_${p} \"${x}\""
-	done
-
-	if ! ${flags[dryrun]} || ${flags[debug]}; then
-		syn_post_summary
 	fi
 }
 
@@ -1120,7 +418,6 @@ function syn_check_autocomplete_request() {
 function main() {
 	# Load and parse everything
 	syn_init
-	syn_load_plugins
 	syn_load_configs
 	syn_parse_commands
 	syn_parse_plugins
