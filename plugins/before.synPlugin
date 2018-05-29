@@ -91,12 +91,13 @@ function syn_helper_beforeafter_run() {
 		pattern="^\s*!?(${vars[${flag_key}-only]/,/|})(=?)(.*)"
 	fi
 	declare -A loop_envs=( [src]="${src}" [dst]="${dst}" )
+	declare -A commands
 
 	for k in "${!loop_envs[@]}"; do
 		local env_type="${k}" # src
 		local env_key="${loop_envs[$k]}" # staging
 
-		declare -A commands
+		commands=()
 
 		syn_kv_field_to_filtered_kv_array commands "${env_key}/${config_key}/${env_type}" "${vars[${flag_key}-only]}"
 		for c in "${!commands[@]}"; do
