@@ -119,10 +119,10 @@ function syn_helper_beforeafter_run() {
 
 			# Finish up
 			if ${flags[dryrun]}; then
-				printf "[PREVIEW] %s: $(_ bold)%s$(_ reset)\n" "${case_title}" "${cmd_title}"
+				printf "[PREVIEW] %s: $(_ bold)%s$(_ reset)\n" "${case_title} (${env_type})" "${cmd_title}"
 				printf "$(_ lightgray bg_darkgray)\n\t%s\n$(_ reset)\n\n" "${cmd_command}"
 			else
-				printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title}" "${linekey}"
+				printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title} (${env_type})" "${cmd_title}"
 				printf "$(_ lightgray bg_darkgray)\n"
 				eval $cmd_command
 				printf "$(_ reset)\n"
