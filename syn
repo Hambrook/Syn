@@ -4,7 +4,7 @@
 #
 # Easily synchronise website content (database and asset files) between environments
 #
-# @version    0.6
+# @version    0.6.1
 # @author     Rick Hambrook <rick@rickhambrook.com>
 # @copyright  Copyright (c) 2018 Rick Hambrook
 # @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
@@ -33,7 +33,7 @@
 
 
 
-_SYN_VERSION=0.6
+_SYN_VERSION=0.6.1
 _SYN_AUTHOR="Rick Hambrook"
 _SYN_WEBSITE="https://www.rickhambrook.com"
 

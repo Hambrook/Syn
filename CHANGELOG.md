@@ -2,13 +2,16 @@
 
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
-## [_next release_]
+## [0.6.1] 2018-05-31
 
 ### Added
 
 - [core] Add core functions to take weight off the plugins (mostly with kv fields)
 - [core] Add autocomplete for `--only`
+- [core] Add `--<plugin>-plus` to specify items to process in addition to defaults (autocomplete only suggests non-defaults)
 - [core] Add `--version`
+- [core] Add `--self-update`
+- [core] Moved to semantic versioning (tempted to bump to 1.0.0 but not quite yet)
 
 ### Fixed
 
@@ -19,6 +22,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 ### Changed
 
 - [core] Move lots of functions to lib files :)
+- [docs] Big update of the README and help text
 
 
 ## [0.6.0] 2018-05-24

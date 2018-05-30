@@ -41,7 +41,7 @@ function syn_cmd_help() {
 
 	printf "
 A pluggable system to synchronise between environments with builtin plugins
-for mysql and rsync.
+for mysql, rsync and more.
 
 Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]
 
