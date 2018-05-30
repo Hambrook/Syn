@@ -20,6 +20,13 @@ function syn_var_before-only_autocomplete() {
 	syn_helper_beforeafter_only_autocomplete "before" "${1}"
 }
 
+vars[before-plus]=""
+vars_help[before-plus]="BEFORE: Specify which operations you want to run and ignore others (comma separated)"
+# Autocomplete
+function syn_var_before-plus_autocomplete() {
+	syn_helper_beforeafter_plus_autocomplete "before" "${1}"
+}
+
 
 # Plugin: BEFORE
 function syn_plugin_before() {
@@ -27,6 +34,14 @@ function syn_plugin_before() {
 }
 function syn_plugin_before_help() {
 	syn_helper_beforeafter_run_help "before" "BEFORE"
+	printf "
+CONFIG EXAMPLE
+
+config[live/before/_ssh]=user@prodserver.com
+config[live/before/dst]=\"
+    maintenance_on=php /path/to/project/bin maintenance_mode:enable
+\"
+"
 }
 
 
@@ -47,34 +62,22 @@ function syn_helper_beforeafter_run_help() {
 	local config_key=$1
 	local title=$2
 
-	local example_maintenance="enable"
-	if [[ $config_key == "after" ]]; then
-		example_maintenance="disable"
-	fi
 
 	printf "Run commands on an environment ${config_key} other actions are executed.
 
-Uses a new-line separated list, with key/values separated by '='. Note no trailing slash.
+Uses a new-line separated list, with key/values separated by '='.
 
 --------------------------------------------------------------------------------
 
 CONFIG
 
-src: List of commands when this environment is the source
-dst: List of commands when this environment is the destination
-_ssh: SSH string for the server run these commands on
+[src]:         [SRC] List of commands when this environment is the source
+[dst]:         [DST] List of commands when this environment is the destination
+[_ssh]:        SSH string for the server run these commands on
+
+(One of either \"src\" or \"dst\" is required)
 
 --------------------------------------------------------------------------------
-
-CONFIG EXAMPLE
-
-    config[live/${config_key}/dst]=\"php /path/to/project/bin mode:maintenance:${example_maintenance}\"
-
-ANOTHER EXAMPLE
-
-    config[live/${config_key}/dst]=\"
-        clear_cache=\"php /path/to/project/bin cache:clear\"
-        enable_maintenance=\"php /path/to/project/bin mode:maintenance:${example_maintenance}\"
 "
 }
 
@@ -99,7 +102,7 @@ function syn_helper_beforeafter_run() {
 
 		commands=()
 
-		syn_kv_field_to_filtered_kv_array commands "${env_key}/${config_key}/${env_type}" "${vars[${flag_key}-only]}"
+		syn_kv_field_to_filtered_kv_array commands "${env_key}/${config_key}/${env_type}" "${vars[${flag_key}-only]}" "${vars[${flag_key}-plus]}"
 		for c in "${!commands[@]}"; do
 			local cmd_title="${c}"
 			local cmd_command="${commands[${c}]}"
@@ -158,4 +161,10 @@ function syn_helper_beforeafter_only_autocomplete() {
 	local config_key=$1
 	syn_autocomplete_kv_field "${src}/${config_key}/src" "${2}"
 	syn_autocomplete_kv_field "${dst}/${config_key}/dst" "${2}"
+}
+
+function syn_helper_beforeafter_plus_autocomplete() {
+	local config_key=$1
+	syn_autocomplete_kv_field "${src}/${config_key}/src" "${2}" "!"
+	syn_autocomplete_kv_field "${dst}/${config_key}/dst" "${2}" "!"
 }

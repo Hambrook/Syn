@@ -16,19 +16,21 @@ function syn_plugin_mysql_help() {
 
 CONFIG
 
-name:      The database name
-[path]:    Path to mysql executable (default mysql)
-[dump]:    Path to mysqldump executable (default mysqldump)
-[host]:    The database host (default 127.0.0.1)
-[user]:    The database user (default root)
-[pass]:    The database pass (default root)
-[port]:    The database port (default 3306)
-[only]:    Tables to copy (and only these tables) (new-line string)
-[skip]:    Tables to skip (new-line string)
-[stru]:    Tables to only copy the structure for, not data (new-line string)
-[flags]:   Optional mysql flags to use when dumping
-[_ssh]:    SSH connection string
-[_docker]: Docker container name
+name:          The database name
+[path]:        Path to mysql executable (default mysql)
+[dump]:        Path to mysqldump executable (default mysqldump)
+[host]:        The database host (default 127.0.0.1)
+[user]:        The database user (default root)
+[pass]:        The database pass (default root)
+[port]:        The database port (default 3306)
+[only]:        [SRC] Tables to copy (and only these tables) (new-line string)
+[skip]:        [SRC] Tables to skip (new-line string)
+[stru]:        [SRC] Tables to copy the structure of, not data (new-line string)
+[flags]:       [SRC] Optional mysql flags to use when dumping
+[_ssh]:        SSH connection string
+[_docker]:     Docker container name
+
+'only', 'skip' and 'stru' are configured on the SOURCE environment
 
 --------------------------------------------------------------------------------
 

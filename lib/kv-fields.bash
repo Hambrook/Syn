@@ -7,44 +7,52 @@ function syn_kv_field_to_filtered_kv_array() {
 	local -n arr="${1}"      # return var name passed by reference (no $ on calling line)
 	local config_key="${2}"  # config key, eg "live/after/dst"
 	local only="${3}"        # filter: eg "mysite,themes". "*" = ALL lines, "" = DEFAULT lines (without ! prefix)
-	local show_prefix=$4     # leave ! prefix on keys?
+	local plus="${4}"        # add items to default list (used when not using "only"
+	local show_prefix=$5     # leave ! prefix on keys?
 	local cnt=0
-	local filter=""
+	local filter_only=""
+	local filter_plus=${plus//,/ }
+
+	# Filter using array instead of pattern so we can filter unnamed lines
+	if [[ ! $only == "*" ]]; then
+		filter_only=${only//,/ }
+	fi
 
 	IFS=$'\n' read -rd '' -a lines <<<"${config[${config_key}]}"
 	local pattern="^\s*(\!?)([^= ]*)(=?)(.*)"
 	#if [[ ! -z $only && ! $only == "*" ]]; then
 	#	pattern="^\s*(\!?)(${only//,/|})(=)(.*)"
 	#fi
-	# Filter using array instead of pattern so we can filter unnamed lines
-	if [[ ! $only == "*" ]]; then
-		filter=${only//,/ }
-	fi
 	for line in "${lines[@]}"; do
 		if [[ $line =~ $pattern ]]; then
-			# Remove non-defaults unless we want ALL
-			if [[ "${BASH_REMATCH[1]}" && -z $only ]]; then
-				continue
-			fi
 			k="${BASH_REMATCH[2]}"
 			v="${BASH_REMATCH[4]}"
 			# Is this row unnamed?
 			if [[ -z ${BASH_REMATCH[3]} ]]; then
-			(( cnt++ ))
+				(( cnt++ ))
 				k="unnamed-${cnt}"
 				v="${BASH_REMATCH[2]}"
 			fi
 
 			# Do filtering here so we can filter unnamed lines
-			if [[ $filter ]] && ! in_array $k filter; then
+
+			# Remove defaults if we only want non-defaults
+			if [[ -z "${BASH_REMATCH[1]}" && $only = "!" ]]; then
 				continue
 			fi
 
-			# Are we leaving the prefix on?
-			if [[ $show_prefix ]]; then
-				k="${BASH_REMATCH[1]}$k"
+			if [[ $only = "*" ]] || \
+				[[ ${BASH_REMATCH[1]} && $only = "!" ]] || \
+				[[ -z ${BASH_REMATCH[1]} && -z $only ]] || \
+				( [[ $filter_only ]] && in_array $k filter_only ) || \
+				( [[ $filter_plus ]] && in_array $k filter_plus ) \
+			; then
+				# Are we leaving the prefix on?
+				if [[ $show_prefix ]]; then
+					k="${BASH_REMATCH[1]}$k"
+				fi
+				: ${arr[${k}]:=${v}}
 			fi
-			: ${arr[${k}]:=${v}}
 		fi
 	done
 }
@@ -56,10 +64,11 @@ function syn_kv_field_to_filtered_k_array() {
 	local -n arr="${1}"
 	local config_key="${2}"
 	local only="${3}"
-	local show_prefix="${4}"
+	local plus="${4}"
+	local show_prefix="${5}"
 	local -A tmp
 
-	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "${only}" "${show_prefix}"
+	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "${only}" "${plus}" "${show_prefix}"
 
 	arr=( "${!tmp[@]}" )
 }
@@ -71,7 +80,7 @@ function syn_list_kv_field() {
 	local config_key="${2}"
 	local -A tmp
 
-	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "*" true
+	syn_kv_field_to_filtered_kv_array tmp "${config_key}" "*" "" true
 	printf "\n$(_ bold)%s$(_ reset)\n" "${title}"
 	for k in "${!tmp[@]}"; do
 		printf "  %s=%s\n" "${k}" "${tmp[$k]}"

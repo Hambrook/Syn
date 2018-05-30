@@ -14,10 +14,17 @@ exec_order[after]=99
 
 # Vars
 vars[after-only]=""
-vars_help[after-only]="AFTER: Specify which operations you want to run and ignore others (comma separated)"
+vars_help[after-only]="AFTER: Specify operations you want to run and ignore others (comma separated)"
 # Autocomplete
 function syn_var_after-only_autocomplete() {
 	syn_helper_beforeafter_only_autocomplete "after" "${1}"
+}
+
+vars[after-plus]=""
+vars_help[after-plus]="AFTER: Specify operations you want to run in addition to the defaults (comma separated)"
+# Autocomplete
+function syn_var_after-plus_autocomplete() {
+	syn_helper_beforeafter_plus_autocomplete "after" "${1}"
 }
 
 
@@ -27,6 +34,16 @@ function syn_plugin_after() {
 }
 function syn_plugin_after_help() {
 	syn_helper_beforeafter_run_help "after" "AFTER"
+	printf "
+CONFIG EXAMPLE
+
+config[live/after/_ssh]=user@prodserver.com
+config[live/after/dst]=\"
+    clear_cache=php /path/to/project/bin cache:clear
+    !build=php /path/to/project/bin build:production
+    maintenance_off=php /path/to/project/bin maintenance_mode:disable
+\"
+"
 }
 
 

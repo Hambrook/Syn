@@ -55,16 +55,18 @@ function syn_check_autocomplete_request() {
 function syn_autocomplete_kv_field() {
 	local config_key="${1}"
 	local current="${2}"
+	local all_or_nondefault="${3:-"*"}"
 	declare -a valid_existing
 	declare -a suggestions
 
 	# Get all valid keys
-	syn_kv_field_to_filtered_k_array suggestions "${config_key}" "*"
+	syn_kv_field_to_filtered_k_array valid_suggestions "${config_key}" "*"
+	syn_kv_field_to_filtered_k_array suggestions "${config_key}" "${all_or_nondefault}"
 
 	# Get keys already entered on the CLI unless partial or invalid
 	IFS=$',' read -rd '' -a existing <<<"${current}"
 	for linekey in "${existing[@]}"; do
-		if in_array "${linekey}" suggestions; then
+		if in_array "${linekey}" valid_suggestions; then
 			valid_existing+=("${linekey}")
 		fi
 	done

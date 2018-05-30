@@ -17,16 +17,18 @@ Uses a new-line separated list, with key/values separated by '='. Note no traili
 Relative paths will be prepended by the local root from either \$config[env/rsync/root]
 or the deepest location of a .syn from the current directory up to the root.
 
+Only named dirs that exist in both SRC and DST will be processed.
+
 --------------------------------------------------------------------------------
 
 CONFIG
 
-[root]: Path to project root (optional base for relative paths)
-dirs: Directories to sync (new-line string)
-_ssh: SSH string for the server where the dirs are located
-_flags: Replace the default rsync flags with your own
-_flags+: Append your own flags to the default
-_tunnel: SSH string for a separate server to tunnel through
+[root]:        Path to project root (optional base for relative paths)
+dirs:          Directories to sync (new-line string)
+[_ssh]:        SSH string for the server where the dirs are located
+[_flags]:      [DST] Replace the default rsync flags with your own
+[_flags+]:     [DST] Append your own flags to the default
+[_tunnel]:     SSH string for a separate server to tunnel through
 
 --------------------------------------------------------------------------------
 
@@ -71,6 +73,14 @@ vars_help[rsync-only]="RSYNC: Specify dirs to process and ignore others (comma s
 function syn_var_rsync-only_autocomplete() {
 	local config_key="rsync"
 	syn_autocomplete_kv_field "${src}/${config_key}/dirs" "${1}"
+}
+
+vars[rsync-plus]=""
+vars_help[rsync-plus]="RSYNC: Specify dirs to process in addition to the defaults (comma separated)"
+# Autocomplete
+function syn_var_rsync-plus_autocomplete() {
+	local config_key="rsync"
+	syn_autocomplete_kv_field "${src}/${config_key}/dirs" "${1}" "!"
 }
 
 
@@ -118,14 +128,14 @@ function syn_plugin_rsync() {
 	fi
 
 	# Source
-	syn_kv_field_to_filtered_kv_array src_paths "${src}/${config_key}/dirs" "${vars[rsync-only]}"
+	syn_kv_field_to_filtered_kv_array src_paths "${src}/${config_key}/dirs" "${vars[rsync-only]}" "${vars[rsync-plus]}"
 	local src_ssh=""
 	if [[ "${config[${src}/${config_key}/_ssh]}" ]]; then
 		src_ssh="${config[${src}/${config_key}/_ssh]}:"
 	fi
 
 	# Destination
-	syn_kv_field_to_filtered_kv_array dst_paths "${dst}/${config_key}/dirs" "${vars[rsync-only]}"
+	syn_kv_field_to_filtered_kv_array dst_paths "${dst}/${config_key}/dirs" "${vars[rsync-only]}" "${vars[rsync-plus]}"
 	local dst_ssh=""
 	if [[ "${config[${dst}/${config_key}/_ssh]}" ]]; then
 		dst_ssh="${config[${dst}/${config_key}/_ssh]}:"
