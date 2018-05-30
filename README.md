@@ -90,11 +90,17 @@ _Show the actions that are configured for the src, dst, or both_
 #### `--envs`
 _List available environments for the current location_
 
+#### `--help`
+_Show this help (or append a plugin name for specific help, eg "syn --help mysql")_
+
 #### `--plugins`
 _Show all the loaded plugins_
 
-#### `--help`
-_Show this help (or append a plugin name for specific help, eg "syn --help mysql")_
+#### `--self-update`
+_Prompts to update Syn using Git (not elegant but it works)_
+
+#### `--version`
+_Shows the version and exits_
 
 ## Available Flags
 
@@ -126,7 +132,7 @@ Syn will automatically warn you before trying to synchronise TO any environment 
 ----
 ## Plugins
 
-Syn includes `mysql` and `rsync` plugins by default (see the `plugins/` directory). But you can easily integrate your own plugins written in Bash.
+Syn includes `mysql`, `rsync`, `after`, and `before` plugins by default (see the `plugins/` directory). But you can easily integrate your own plugins written in Bash (see below).
 
 Third-party plugins are all loaded from one directory (and that directory path must be set in your Bash environment).
 
@@ -139,8 +145,8 @@ For example, if creating a plugin called "**foo**"...
 
 3. Create a file in that directory named after your plugin, with the `.synPlugin` suffix, eg `foo.synPlugin`
 4. Open up your plugin file and add two functions
- * syn\_plugin\_foo()
- * syn\_plugin\_foo\_help()
+    * syn\_plugin\_foo()
+    * syn\_plugin\_foo\_help()
 
 The help function will be called from Syn's help system when requested by the user (`syn --help foo`). It should describe what your plugin does and provide an example configuration.
 
@@ -150,6 +156,8 @@ For reference, see the included plugins in the `plugins/` directory.
 
 ----
 ## RSYNC Plugin
+
+The Rsync plugin 
 
 The rsync plugin now includes a new `--rsync-only` parameter that will let you cherry pick individual dirs from your full list of dirs. For example...
 
@@ -188,13 +196,10 @@ This configuration would enable maintenance mode before pushing to `live` when i
 
 You can use `--after-list` and `--after-only` etc, just like the `rsync` plugin.
 
-### Other RSYNC Tools
+### Other Before/After Tools
 
-#### `--rsync-list`
-_List dirs for all or specified environments_
-
-#### `--rsync-dryrun`
-_Show all changes that would be made _without anything actually being changed_
+#### `--after-list` or `--before-list`
+_List commands for all or specified environments_
 
 ----
 ## `!` Prefix

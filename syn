@@ -256,6 +256,28 @@ function syn_cmd_install_help() {
 	printf "Installs Syn to your executable path for ease-of-use\n"
 }
 
+# Update from Github (because I'm lazy)
+function syn_cmd_self-update() {
+	if [[ ! -d "${app_dir}/.git" ]]; then
+		syn_error "Cannot self update, cannot find .git folder in \"${app_dir}\""
+	fi
+	local latest_version=$(wget -q -O - https://raw.githubusercontent.com/Hambrook/Syn/master/syn | grep -oP '_SYN_VERSION=([^\n]+)' | sed -e 's/_SYN_VERSION=//')
+
+	printf "Current version: %s\n" $_SYN_VERSION
+	printf "Latest version: %s\n" $latest_version
+
+	if ! syn_confirm "Do you wish to update?" "Y"; then
+		printf "Aborting\n"
+		exit
+	fi
+	(cd "${app_dir}" && git pull)
+	#printf "cd \"${app_dir}\" && git pull\n"
+	syn --version
+}
+function syn_cmd_self-update_help() {
+	printf "Updates Syn from the Github repo\n"
+}
+
 
 function syn_cmd_version() {
 	printf "Syn v%s\n" "${_SYN_VERSION}"
