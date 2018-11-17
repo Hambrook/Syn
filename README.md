@@ -54,7 +54,6 @@ Put Syn in a tools folder somewhere outside of your regular projects.
         config=/absolute/path-to/config
     "
 
-----
 ### Usage
 
 Simply specify your source and destination environments
@@ -96,9 +95,11 @@ Most variables can handle being surrounded in double quotes, but especially for 
     config[live/mysql/pass]=with\$pecial\;chars
 
 ----
-## Core Commands
+## Core Commands, Vars, and Flags
 
 _Note: use `syn --help` to see all vars, flags and more. Even those that aren't listed here._
+
+### Commands
 
 #### `--actions`
 _Show the actions that are configured for the src, dst, or both_
@@ -121,7 +122,7 @@ _Prompts to update Syn using Git (not elegant but it works)_
 #### `--version`
 _Shows the version and exits_
 
-## Core Flags
+### Flags
 
 #### `--dryrun`
 _Show the commands that will be used, but don't actually run them_
@@ -129,7 +130,7 @@ _Show the commands that will be used, but don't actually run them_
 #### `--force`
 _Push to live/prod/"warn" without confirmation prompt (if applicable)_
 
-## Core Vars
+### Vars
 
 #### `--file`
 _Specify an additional config file to load (after other attempts). Can be full or relative path, or the name of a file in your SYN_DEFAULT_PATH (see below). This is useful if you aren't storing the syn configuration files in the project folder. You can also use `--file .` to use the current directory name as the filename for a config file in your SYN_DEFAULT_PATH dir_

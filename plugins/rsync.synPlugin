@@ -194,7 +194,11 @@ function syn_plugin_rsync() {
 				printf "Rsync: $(_ bold)%s$(_ reset)...\n" "${i}"
 				printf "$(_ lightgray bg_darkgray)\n"
 				eval $rsync_cmd
+				local status=$?
 				printf "$(_ reset)\n"
+				if [ $status != 0 ]; then
+					return $status
+				fi
 				printf "Rsync: $(_ bold)%s$(_ reset) [DONE]\n\n" "${i}"
 			fi
 		fi

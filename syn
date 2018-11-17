@@ -140,6 +140,9 @@ function syn_cmd_sync() {
 		printf "\n$(_ green bold)Running plugin: %s$(_ reset)\n" "$x"
 		local p=$(syn_get_plugin_name_from_fuzzy $x)
 		eval "syn_plugin_${p} \"${x}\""
+		if [ $? != 0 ]; then
+			syn_error "Plugin '$p' encountered an error so processing has stopped"
+		fi
 	done
 
 	if ! ${flags[dryrun]} || ${flags[debug]}; then

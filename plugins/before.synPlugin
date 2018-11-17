@@ -129,7 +129,11 @@ function syn_helper_beforeafter_run() {
 				printf "%s: $(_ bold)%s$(_ reset)...\n" "${case_title} (${env_type})" "${cmd_title}"
 				printf "$(_ lightgray bg_darkgray)\n"
 				eval $cmd_command
+				local status=$?
 				printf "$(_ reset)\n"
+				if [ $status != 0 ]; then
+					return $status
+				fi
 				printf "%s: $(_ bold)%s [DONE]\n$(_ reset)\n" "${i}"
 			fi
 		done

@@ -175,7 +175,11 @@ function syn_plugin_mysql() {
 			printf "MySQL...\n"
 			printf "$(_ lightgray bg_darkgray)\n"
 			eval $cmdSrc | $cmdDst
+			local status=$?
 			printf "$(_ reset)\n"
+			if [ $status != 0 ]; then
+				return $status
+			fi
 			printf "MySQL $(_ bold)[DONE]$(_ reset)\n"
 		fi
 
