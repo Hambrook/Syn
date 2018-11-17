@@ -21,7 +21,7 @@ name:          The database name
 [dump]:        Path to mysqldump executable (default mysqldump)
 [host]:        The database host (default 127.0.0.1)
 [user]:        The database user (default root)
-[pass]:        The database pass (default root)
+[pass]:        The database pass (default <none>)
 [port]:        The database port (default 3306)
 [only]:        [SRC] Tables to copy (and only these tables) (new-line string)
 [skip]:        [SRC] Tables to skip (new-line string)

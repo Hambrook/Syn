@@ -15,7 +15,6 @@
 # [ ]   - Overview GIF
 # [ ]   - Quick start (simplest config)
 # [ ]   - RSYNC to separate file
-# [ ] Semantic versioning
 # [ ] "Namespace" everything to a SYN namespace?
 # [ ] Use centralised config file for paths and setting, docker/docker-machine (location optionally configurable via env var)
 # [ ] Add boot2docker support
