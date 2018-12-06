@@ -2,6 +2,25 @@
 
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
+
+## UPCOMING
+
+### Added
+
+- [core] Add `!` prefix (to mark as non-default) support for actions
+- [core] Add `--plus` support to core
+- [core] Stop further processing if a plugin reports an error
+- [core] Add `--actions-all` command to list all actions for the specified environments (with prefix)
+
+### Changed
+
+- [core] Restructure how actions are stored
+- [core] Impreove actions parsing
+- [core] Consolidated a lot of KV filtering logic
+- [core] Any `syn_cmd_` prefixed command can be run but only commands with help text will show in the commands list
+- [core] Added more colours to help screen and command/flag/var lists
+
+
 ## [0.6.1] 2018-05-31
 
 ### Added

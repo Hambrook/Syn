@@ -9,30 +9,6 @@ function syn_error() {
 }
 
 
-# Show a prompt for confirmation
-function syn_confirm() {
-	# $1 = Question
-	# $2 = default (y/true/n/false)
-
-	local prompt="y/N"
-	local default=1
-	if [[ $2 =~ ^[Yy].* ]]; then
-		prompt="Y/n"
-		default=0
-	fi
-
-	read -p "$(_ yellow)${1} [${prompt}]:$(_ reset) " response
-
-	if [[ $response =~ ^[Yy].* ]]; then
-		return 0
-	fi
-	if [[ $response = "" ]]; then
-		return $default
-	fi
-	return 1
-}
-
-
 # Check if a plugin exists
 function syn_validate_plugin() {
 	if [[ $(set | grep "syn_plugin_$1 ()") ]]; then

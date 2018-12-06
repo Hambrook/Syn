@@ -2,25 +2,25 @@
 
 
 function syn_render_help_commands() {
-	printf "$(_ bold)Commands:$(_ r_bold)\n"
-	for c in ${!commands[*]}; do
-		printf "  --%-16s %s\n" "$c" "$(${commands[$c]})"
+	syn_cli_render_title "Commands:"
+	for k in ${!commands[*]}; do
+		syn_cli_render_kv_row "--$k" "$(${commands[$k]})"
 	done
 }
 
 
 function syn_render_help_flags() {
-	printf "$(_ bold)Flags:$(_ r_bold)\n"
-	for f in ${!flags_help[*]}; do
-		printf "  --%-16s %s\n" "$f" "${flags_help[$f]}"
+	syn_cli_render_title "Flags:"
+	for k in ${!flags_help[*]}; do
+		syn_cli_render_kv_row "--$k" "${flags_help[$k]}"
 	done
 }
 
 
 function syn_render_help_vars() {
-	printf "$(_ bold)Vars:$(_ r_bold)\n"
-	for v in ${!vars_help[*]}; do
-		printf "  --%-16s %s\n" "$v" "${vars_help[$v]}"
+	syn_cli_render_title "Vars:"
+	for k in ${!vars_help[*]}; do
+		syn_cli_render_kv_row "--$k" "${vars_help[$k]}"
 	done
 }
 
@@ -45,9 +45,9 @@ for mysql, rsync and more.
 
 Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]
 
-$(_ bold)Parameters:$(_ r_bold)
-  SRC                Must match an environment from the loaded config files
-  DST                Must match an environment from the loaded config files
+$(syn_cli_render_title Parameters:)
+  $(_ green)SRC$(_ default)                Must match an environment from the loaded config files
+  $(_ green)DST$(_ default)                Must match an environment from the loaded config files
 
 $(syn_render_help_commands)
 
@@ -64,7 +64,6 @@ $(syn_cmd_paths)
 $(syn_cmd_configs)
 "
 # | less
-
 	exit
 }
 function syn_cmd_help_help() {

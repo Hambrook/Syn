@@ -78,3 +78,14 @@ function _() {
 
 	printf "\e[${output}m"
 }
+function syn_cmd_colours() {
+	syn_cli_render_title "Colours Preview:"
+	printf "  %-18s %s\n" "Normal" "Bold"
+	for v in default black red green yellow blue magenta cyan lightgray darkgray lightred lightgreen lightyellow lightblue lightmagenta lightcyan white; do
+		printf "  $(_ $v)%-18s$(_ bold) %s$(_ reset)\n" "$v" "$v"
+	done
+	exit
+}
+function syn_cmd_colours_help() {
+	echo "help"
+}

@@ -3,37 +3,30 @@
 
 # List all or requested actions (eg --only rsync,after)
 function syn_parse_actions() {
-	declare -A tmp
-
-	# List all actions if none are specifically requested
-	if [[ "${vars[only]}" == "" ]]; then
-		local pattern="^[^/]+/([^_][^/]+)"
-		for p in "${!config[@]}"; do
-			if [[ $p =~ $pattern ]]; then
-				: ${tmp[${BASH_REMATCH[1]}]:=${BASH_REMATCH[1]}}
-			fi
-		done
-	else
-		# Actions were set at the command line, comma separated
-		tmp=${vars[only]/,/ }
+	local envmatch="[^/]+"
+	# Limit to actions for the specified environments
+	if [[ $src ]]; then
+		envmatch="${src}"
+		if [[ $dst ]]; then
+			envmatch="${envmatch}|${dst}"
+		fi
 	fi
-
-	# Wipe it out so we can add them back, in execution order
-	vars[only]=""
 
 	# Need to sort by plugin exec order
 	for p in "${plugins_exec[@]}"; do
-		local pattern="^(${p}([^a-zA-Z0-9]+.*)?)"
-		for k in "${tmp[@]}"; do
+		local pattern="^(${envmatch})/(\!?)(${p}[^/]*)/"
+		for k in "${!config[@]}"; do
 			if [[ $k =~ $pattern ]]; then
-				vars[only]="${vars[only]} ${k}"
+				: ${actions_all[${BASH_REMATCH[3]}]:=${BASH_REMATCH[2]}}
 			fi
 		done
 	done
+
+	array_to_filtered_array actions actions_all "${vars[only]}" "${vars[plus]}" 1
 }
 
 
-# Get the available plugins
+# Get the commands that have help text
 function syn_parse_commands() {
 	for c in $(compgen -A function syn_cmd_); do
 		local cmd="${c//syn_cmd_/}"
@@ -71,7 +64,7 @@ function syn_parse_parameters() {
 			if array_key_exists "${BASH_REMATCH[1]}" flags; then
 				flags[${BASH_REMATCH[1]}]=true
 			# Is it a command, eg "--help"?
-			elif array_key_exists "${BASH_REMATCH[1]}" commands; then
+			elif [[ $(type -t "syn_cmd_${BASH_REMATCH[1]}") == "function" ]]; then
 				cmd="${BASH_REMATCH[1]}"
 			# Is it a space-separated var, eg "--only rsync"?
 			elif array_key_exists "${BASH_REMATCH[1]}" vars; then
