@@ -4,7 +4,7 @@
 #
 # Easily synchronise website content (database and asset files) between environments
 #
-# @version    0.6.1
+# @version    0.6.2
 # @author     Rick Hambrook <rick@rickhambrook.com>
 # @copyright  Copyright (c) 2018 Rick Hambrook
 # @license    http://opensource.org/licenses/GPL-3.0  GNU Public License
@@ -32,7 +32,7 @@
 
 
 
-_SYN_VERSION=0.6.1
+_SYN_VERSION=0.6.2
 _SYN_AUTHOR="Rick Hambrook"
 _SYN_WEBSITE="https://www.rickhambrook.com"
 
@@ -57,6 +57,8 @@ declare config_cnt
 declare config_files=""
 declare local_root=""
 declare autocomplete=false
+declare -A actions      # proposed list of actions (honouring --only and --plus)
+declare -A actions_all  # key/value list of all actions and their optional flag for the specified environment
 declare -A commands
 declare -A environments
 declare -a plugins      # ordered alphabetically
@@ -89,12 +91,14 @@ declare -A flags_help=(
 declare -A vars=(
 	[file]=""
 	[only]=""
+	[plus]=""
 	[autocomplete-current]=""
 	[autocomplete-previous]=""
 )
 declare -A vars_help=(
 	[file]="Specify a config file to load (after other attempts)"
 	[only]="Select only the actions you want to take (comma separated)"
+	[plus]="Select actions to take in addition to defaults (comma separated)"
 )
 
 
@@ -124,10 +128,10 @@ function syn_cmd_sync() {
 	fi
 
 	# Pre-process summary
-	printf "Proceeding to sync %s from $(_ bold)%s$(_ reset) to $(_ bold)%s$(_ reset)\n" "$(printf "${vars[only][@]}" | sed -e 's/,/, /')" "$src" "$dst"
+	printf "Proceeding to sync %s from $(_ bold)%s$(_ reset) to $(_ bold)%s$(_ reset)\n" "$(printf "${!actions[@]}" | sed -e 's/,/, /')" "$src" "$dst"
 
 	# Check that all the actions exist
-	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
+	for x in ${!actions[@]}; do
 		local p=$(syn_get_plugin_name_from_fuzzy $x)
 		if [[ ! $(syn_validate_plugin "$p") ]]; then
 			syn_error "Plugin '$p' not found"
@@ -135,10 +139,10 @@ function syn_cmd_sync() {
 	done
 
 	# Run all the actions exist
-	for x in $(printf "${vars[only][@]}" | sed -e 's/,/ /'); do
-		printf "\n$(_ green bold)Running plugin: %s$(_ reset)\n" "$x"
-		local p=$(syn_get_plugin_name_from_fuzzy $x)
-		eval "syn_plugin_${p} \"${x}\""
+	for a in ${!actions[@]}; do
+		printf "\n$(_ green bold)Running action: %s$(_ reset)\n" "${actions[$a]}"
+		local p=$(syn_get_plugin_name_from_fuzzy $a)
+		eval "syn_plugin_${p} \"${actions[$a]}\""
 		if [ $? != 0 ]; then
 			syn_error "Plugin '$p' encountered an error so processing has stopped"
 		fi
@@ -151,17 +155,32 @@ function syn_cmd_sync() {
 
 
 function syn_cmd_actions() {
-	local actions=""
-	for a in ${vars[only]}; do
-		actions+="\n  ${a}"
+	local acts=""
+	for k in "${!actions[@]}"; do
+		acts+="\n  ${k}"
 	done
-	if [[ ! "${actions}" ]]; then
-		actions="\n  <none>"
+	if [[ ! "${acts}" ]]; then
+		acts="\n  <none>"
 	fi
-	printf "Proposed actions for this sync:${actions}\n"
+	printf "Proposed actions for this sync:${acts}\n"
 }
 function syn_cmd_actions_help() {
-	printf "Show the actions that are configured for a src, dst, or both"
+	printf "Show the proposed actions that are configured for a src, dst, or both"
+}
+
+
+function syn_cmd_actions-all() {
+	local acts=""
+	for k in "${!actions_all[@]}"; do
+		acts+="\n  ${actions_all[$k]}${k}"
+	done
+	if [[ ! "${acts}" ]]; then
+		acts="\n  <none>"
+	fi
+	printf "Proposed actions for this sync:${acts}\n"
+}
+function syn_cmd_actions-all_help() {
+	printf "Show all actions that are configured for a src, dst, or both"
 }
 
 # Show environments
@@ -169,15 +188,17 @@ function syn_cmd_envs() {
 	# $1 = [true/false] show 'readonly' status
 	local envs=""
 	for e in ${environments[*]}; do
-		envs+="\n  ${e}"
+		envs+="  $(_ yellow)${e}$(_ default)"
 		if [[ ! "$1" == true && "${config[${e}/_allow]}" == false ]]; then
 			envs+=" [read only]"
 		fi
+		envs+="\n"
 	done
 	if [[ ! "${envs}" ]]; then
-		envs="\n  <none>"
+		envs="  <none>\n"
 	fi
-	printf "$(_ bold)Loaded Environments:$(_ r_bold)${envs}\n"
+	syn_cli_render_title "Loaded Environments:"
+	printf "${envs}"
 }
 function syn_cmd_envs_help() {
 	printf "List available environments"
@@ -205,9 +226,9 @@ function syn_cmd_paths() {
 	else
 		tmp_default_config_dir="<not set>"
 	fi
-	printf "$(_ bold)Custom Paths:$(_ r_bold)\n"
-	printf "  SYN_PLUGIN_PATH: ${tmp_plugin_dir_custom}\n"
-	printf "  SYN_DEFAULT_PATH: ${tmp_default_config_dir}\n"
+	syn_cli_render_title "Custom Paths:"
+	syn_cli_render_kv_row "SYN_PLUGIN_PATH:" "${tmp_plugin_dir_custom}" "magenta"
+	syn_cli_render_kv_row "SYN_DEFAULT_PATH:" "${tmp_default_config_dir}" "magenta"
 }
 function syn_cmd_paths_help() {
 	printf "List configured paths"
@@ -215,9 +236,9 @@ function syn_cmd_paths_help() {
 
 # Show plugins
 function syn_cmd_plugins() {
-	printf "$(_ bold)Loaded Plugins:$(_ r_bold)\n"
+	syn_cli_render_title "Loaded Plugins:"
 	if (( ${#plugins[@]} > 0 )); then
-		printf '  %s\n' "${plugins[@]}"
+		printf "  $(_ lightcyan)%s$(_ default)\n" "${plugins[@]}"
 	else
 		printf "  <none>\n"
 	fi

@@ -4,13 +4,34 @@
 # Autocomplete (yeah it shouldn't be here, I'll find somewhere better for it)
 function syn_var_only_autocomplete() {
 	declare -a allactions
-	local pattern="^[^/]+/([^_][^/]+)"
+	local envmatch="[^/]+"
+	# Limit to actions for the specified environments
+	if [[ $src ]]; then
+		envmatch="${src}"
+		if [[ $dst ]]; then
+			envmatch="${envmatch}|${dst}"
+		fi
+	fi
+	local pattern="^(${envmatch})/(\!?)([^_][^/]+)"
 	for p in "${!config[@]}"; do
 		if [[ $p =~ $pattern ]]; then
-			allactions+=( "${BASH_REMATCH[1]}" )
+			allactions+=( "${BASH_REMATCH[3]}" )
 		fi
 	done
 	syn_autocomplete_array_field allactions "${1}"
+}
+
+
+# also shouldn't be here
+function syn_var_plus_autocomplete() {
+	declare -a nondefaultactions
+	local pattern="^[^/]+/\!([^_][^/]+)"
+	for p in "${!config[@]}"; do
+		if [[ $p =~ $pattern ]]; then
+			nondefaultactions+=( "${BASH_REMATCH[1]}" )
+		fi
+	done
+	syn_autocomplete_array_field nondefaultactions "${1}"
 }
 
 

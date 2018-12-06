@@ -50,3 +50,37 @@ function array_key_exists() {
 function join() {
 	local IFS="$1"; shift; echo "$*"
 }
+
+
+# Get a filtered key/value array from a key/value field
+# array_to_filtered_array result_arr input_arr
+function array_to_filtered_array() {
+	local -n arr="${1}"      # return var name passed by reference (no $ on calling line)
+	local -n haystack=${2}   # haystack to filter
+	local only="${3}"        # filter: eg "mysite,themes". "*" = ALL lines, "" = DEFAULT lines (without ! prefix)
+	local plus="${4}"        # add items to default list (used when not using "only"
+	local show_prefix=$5     # leave ! prefix on keys?
+	local cnt=0
+	local filter_only=""
+	local filter_plus=${plus//,/ }
+
+	# Filter using array instead of pattern so we can filter unnamed lines
+	if [[ ! $only == "*" ]]; then
+		filter_only=${only//,/ }
+	fi
+	for k in "${!haystack[@]}"; do
+		local v="$k"
+		if [[ $only = "*" ]] || \
+			[[ "${haystack[$k]}" && $only = "!" ]] || \
+			[[ -z "${haystack[$k]}" && -z $only ]] || \
+			( [[ $filter_only ]] && in_array $k filter_only ) || \
+			( [[ $filter_plus ]] && in_array $k filter_plus ) \
+		; then
+			# Are we leaving the prefix on?
+			if [[ $show_prefix ]]; then
+				v="${haystack[$k]}$v"
+			fi
+			: ${arr[${k}]:=${v}}
+		fi
+	done
+}
