@@ -180,7 +180,7 @@ function syn_plugin_mysql() {
 			if [ $status != 0 ]; then
 				return $status
 			fi
-			printf "MySQL $(_ bold)[DONE]$(_ reset)\n"
+			printf "MySQL $(_ bold)[DONE]$(_ r_bold)\n"
 		fi
 
 	done

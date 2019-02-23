@@ -7,6 +7,17 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ### Added
 
+- [core] Add `⚠` icon to error message
+
+### Fixed
+
+- [core] Fix colour output (and r_bold) for help and info
+
+
+## [0.6.2] 2018-12-06
+
+### Added
+
 - [core] Add `!` prefix (to mark as non-default) support for actions
 - [core] Add `--plus` support to core
 - [core] Stop further processing if a plugin reports an error

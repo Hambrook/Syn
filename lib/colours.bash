@@ -14,7 +14,7 @@ formatting=(
 	[reverse]=7
 	[hidden]=8
 	# Reset formatting
-	[r_bold]=21
+	[r_bold]=22 # should be 21 but it's not widely supported: https://stackoverflow.com/questions/15579739/in-an-xterm-can-i-turn-off-bold-or-underline-without-resetting-the-current-colo#comment72979164_15581497
 	[r_dim]=22
 	[r_underline]=24
 	[r_ul]=24
