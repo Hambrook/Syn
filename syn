@@ -177,7 +177,7 @@ function syn_cmd_actions-all() {
 	if [[ ! "${acts}" ]]; then
 		acts="\n  <none>"
 	fi
-	printf "Proposed actions for this sync:${acts}\n"
+	printf "All available actions for this sync:${acts}\n"
 }
 function syn_cmd_actions-all_help() {
 	printf "Show all actions that are configured for a src, dst, or both"
@@ -249,9 +249,22 @@ function syn_cmd_plugins_help() {
 
 # Show configuration files
 function syn_cmd_configs() {
-	printf "$(_ bold)Loaded Configs:$(_ r_bold)%s\n" "${config_files//"\n"/"\n  "}"
+	#todo: migrate to use syn_cli_render_title
+	syn_cli_render_title "Loaded Configs:"
+	for k in ${config_files[@]}; do
+		printf "  %s\n" "${k//"\n"/""}"
+	done
 	if [[ "${config_files[@]}" = "" ]]; then
-		printf "  <none>"
+		printf "  <none>\n"
+	fi
+
+	local configs=""
+	for v in ${config_files[*]}; do
+		configs+="  ${e}"
+		configs+="\n"
+	done
+	if [[ ! "${envs}" ]]; then
+		envs="  <none>\n"
 	fi
 }
 function syn_cmd_configs_help() {
@@ -326,11 +339,11 @@ function syn_banner() {
 	printf "$(_ lightgreen bold)
     _____
    / ____|
-  | (___  _   _ _ __     $(_ green r_bold)Version: v%s$(_ lightgreen bold)
+  | (___  _   _ _ __     $(_ reset green)Version: v%s$(_ lightgreen bold)
    \___ \| | | | '_ \ 
-   ____) | |_| | | | |   $(_ green r_bold)Author:  %s$(_ lightgreen bold)
+   ____) | |_| | | | |   $(_ reset green)Author:  %s$(_ lightgreen bold)
   |_____/ \__, |_| |_|
-           __/ |         $(_ green r_bold)Website: %s$(_ lightgreen bold)
+           __/ |         $(_ reset green)Website: %s$(_ lightgreen bold)
           |___/
 
 $(_ reset)" "${_SYN_VERSION}" "${_SYN_AUTHOR}" "${_SYN_WEBSITE}"
@@ -402,19 +415,25 @@ function syn_post_summary() {
 
 	# Only
 	local plugins_str="<all>"
-	if [[ "${vars[only][$#]}" ]]; then
-		plugins_str="${vars[only][@]}"
+	if [[ "${#actions[@]}" ]]; then
+		# This version removes the space afte rhte comma
+		#plugins_str=$(join ", " ${actions[@]});
+		plugins_str=${actions[@]};
+		plugins_str=${plugins_str//" "/", "};
+		# Remove the "!" prefix
+		plugins_str=${plugins_str//"!"/""};
 	fi
 
 	local tmp_configs=${config_files//"\n"/"\n\t\t"}
 
 	# Inline summary
 	printf "$(_ bg_green)
-	$(_ bold underline)SYN COMPLETE$(_ r_bold r_underline)
 
-	From:    $(_ bold)%s$(_ r_bold) to $(_ bold)%s$(_ r_bold)
-	Plugins: %s
-	Time:    $(_ bold)%s$(_ r_bold)
+	$(_ bold)SYN COMPLETE$(_ reset bg_green)
+
+	From:    $(_ bold)%s$(_ reset bg_green) to $(_ bold)%s$(_ reset bg_green)
+	Plugins: $(_ bold)%s$(_ reset bg_green)
+	Time:    $(_ bold)%s$(_ reset bg_green)
 	Config files: ${tmp_configs}
 $(_ bg_default)
 " "${src}" "${dst}" "${plugins_str}" "${time_diff_str}"

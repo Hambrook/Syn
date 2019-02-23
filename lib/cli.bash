@@ -27,7 +27,7 @@ function syn_cli_confirm() {
 
 function syn_cli_render_title() {
 	if [ "$1" ]; then
-		printf "$(_ bold blue)$1$(_ r_bold default)\n"
+		printf "$(_ bold blue)$1$(_ reset default)\n"
 	fi
 }
 

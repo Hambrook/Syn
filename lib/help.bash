@@ -43,11 +43,11 @@ function syn_cmd_help() {
 A pluggable system to synchronise between environments with builtin plugins
 for mysql, rsync and more.
 
-Usage: syn <SRC> <DST> [COMMANDS/FLAGS/VARS]
+Usage: $(_ lightyellow)syn <SRC> <DST> [COMMAND/FLAGS/VARS]$(_ default)
 
-$(syn_cli_render_title Parameters:)
-  $(_ green)SRC$(_ default)                Must match an environment from the loaded config files
-  $(_ green)DST$(_ default)                Must match an environment from the loaded config files
+$(syn_cli_render_title "Parameters:")
+$(syn_cli_render_kv_row SRC "Must match an environment from the loaded config files")
+$(syn_cli_render_kv_row DST "Must match an environment from the loaded config files")
 
 $(syn_render_help_commands)
 
@@ -62,6 +62,7 @@ $(syn_cmd_plugins)
 $(syn_cmd_paths)
 
 $(syn_cmd_configs)
+
 "
 # | less
 	exit
