@@ -4,21 +4,35 @@
 # Config file loading
 function syn_load_configs() {
 	config_cnt=0
-	for filename in ".syn.global" ".syn" ".syn.local"; do
-		local currpath="${PWD}"
-		while [[ "${currpath}" != "/" ]]; do
-			if [[ -r "${currpath}/${filename}" ]]; then
-				config_files="${config_files}\n${currpath}/${filename}"
+
+	# Paths
+	local paths=()
+	# Default
+	if [[ "${SYN_DEFAULT_PATH}" ]]; then
+		paths[${#paths[@]}]="${SYN_DEFAULT_PATH}"
+	fi
+	# Hierarchy
+	local currpath="${PWD}"
+	while [[ "${currpath}" != "/" ]]; do
+		#paths[${#paths[@]}]="${currpath}"
+		paths+=("${currpath}")
+		currpath=$(cd "${currpath}/.." && pwd) || syn_error "Invalid path"
+	done
+
+	for pathname in "${paths[@]}"; do
+		for filename in ".syn.global" ".syn" ".syn.local"; do
+			if [[ -r "${pathname}/${filename}" ]]; then
+				if [[ -z "${local_root}" && "${pathname}" != "${SYN_DEFAULT_PATH}" && -r "${pathname}/${filename}" ]]; then
+					local_root="${pathname}"
+				fi
+
+				config_files+=("${pathname}/${filename}")
 				if ${flags[debug]}; then
-					printf "Loading config file: %s\n" "${currpath}/${filename}"
+					printf "Loading config file: %s\n" "${pathname}/${filename}"
 				fi
-				if [[ -z "${local_root}" ]]; then
-					local_root="${currpath}"
-				fi
-				. "${currpath}/${filename}"
+				. "${pathname}/${filename}"
 				(( config_cnt++ ))
 			fi
-			currpath=$(cd "${currpath}/.." && pwd) || syn_error "Invalid path"
 		done
 	done
 }
@@ -74,3 +88,4 @@ function syn_load_config_specific() {
 		syn_error "Could not find specific config file (${vars[file]})${err}"
 	fi
 }
+
