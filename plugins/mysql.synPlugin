@@ -74,25 +74,25 @@ function syn_plugin_mysql() {
 	fi
 
 	# Defaults
-	: ${config[$src/mysql/dump]:=${config[_mysql_dump]}}
-	: ${config[$src/mysql/host]:=${config[_mysql_host]}}
-	: ${config[$src/mysql/user]:=${config[_mysql_user]}}
-	: ${config[$src/mysql/pass]:=${config[_mysql_pass]}}
-	: ${config[$src/mysql/port]:=${config[_mysql_port]}}
-	: ${config[$src/mysql/_ssh]:=${config[_mysql_ssh]}}
-	: ${config[$src/mysql/_docker]:=${config[_mysql_docker]}}
-	: ${config[$src/mysql/only]:=${config[_mysql_only]}}
-	: ${config[$src/mysql/skip]:=${config[_mysql_skip]}}
-	: ${config[$src/mysql/stru]:=${config[_mysql_stru]}}
-	: ${config[$src/mysql/flags]:=${config[_mysql_flags]}}
+	: ${config[$src/${config_key}/dump]:=${config[_mysql_dump]}}
+	: ${config[$src/${config_key}/host]:=${config[_mysql_host]}}
+	: ${config[$src/${config_key}/user]:=${config[_mysql_user]}}
+	: ${config[$src/${config_key}/pass]:=${config[_mysql_pass]}}
+	: ${config[$src/${config_key}/port]:=${config[_mysql_port]}}
+	: ${config[$src/${config_key}/_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$src/${config_key}/_docker]:=${config[_mysql_docker]}}
+	: ${config[$src/${config_key}/only]:=${config[_mysql_only]}}
+	: ${config[$src/${config_key}/skip]:=${config[_mysql_skip]}}
+	: ${config[$src/${config_key}/stru]:=${config[_mysql_stru]}}
+	: ${config[$src/${config_key}/flags]:=${config[_mysql_flags]}}
 
-	: ${config[$dst/mysql/path]:=${config[_mysql_path]}}
-	: ${config[$dst/mysql/host]:=${config[_mysql_host]}}
-	: ${config[$dst/mysql/user]:=${config[_mysql_user]}}
-	: ${config[$dst/mysql/pass]:=${config[_mysql_pass]}}
-	: ${config[$dst/mysql/port]:=${config[_mysql_port]}}
-	: ${config[$dst/mysql/_ssh]:=${config[_mysql_ssh]}}
-	: ${config[$dst/mysql/_docker]:=${config[_mysql_docker]}}
+	: ${config[$dst/${config_key}/path]:=${config[_mysql_path]}}
+	: ${config[$dst/${config_key}/host]:=${config[_mysql_host]}}
+	: ${config[$dst/${config_key}/user]:=${config[_mysql_user]}}
+	: ${config[$dst/${config_key}/pass]:=${config[_mysql_pass]}}
+	: ${config[$dst/${config_key}/port]:=${config[_mysql_port]}}
+	: ${config[$dst/${config_key}/_ssh]:=${config[_mysql_ssh]}}
+	: ${config[$dst/${config_key}/_docker]:=${config[_mysql_docker]}}
 
 	local db_actions="initial"
 	if [[ "${config[${src}/${config_key}/stru]}" ]]; then
