@@ -185,7 +185,7 @@ function syn_plugin_rsync() {
 			tmp+=(${config[${dst}/${config_key}/_flags]})
 			tmp+=(${config[${dst}/${config_key}/_flags+]})
 			tmp+=(${tunnel})
-			tmp+=(${src_ssh}${src_path})
+			tmp+=(${src_ssh}${src_path}/)
 			tmp+=(${tmp_dst_ssh}${dst_path})
 			local rsync_cmd=$(echo "${tmp[*]}")
 
