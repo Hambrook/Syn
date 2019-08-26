@@ -11,6 +11,9 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ### Fixed
 
+- [mysql] Fix default config not applying to aliased keys
+- [rsync] Fix remote to remote transfers
+- [core] Fix config hierarchy not working as expected
 - [core] Fix colour output (and r_bold) for help and info
 
 
