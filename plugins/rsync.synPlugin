@@ -174,16 +174,27 @@ function syn_plugin_rsync() {
 				tunnel="-e 'ssh -A ${config[${dst}/${config_key}/_tunnel]} ssh'"
 			fi
 
-			local rsync_cmd="rsync \
-				${config[${dst}/${config_key}/_flags]} ${config[${dst}/${config_key}/_flags+]} \
-				${tunnel} \
-				${src_ssh}${src_path}/ \
-				${dst_ssh}${dst_path}
-			"
+			local tmp_dst_ssh=$dst_ssh
+
+			if [[ "${src_ssh}" && "${dst_ssh}" ]]; then
+				tmp_dst_ssh=""
+			fi
+
+			# New way that should prevent extra spaces
+			local tmp=("rsync")
+			tmp+=(${config[${dst}/${config_key}/_flags]})
+			tmp+=(${config[${dst}/${config_key}/_flags+]})
+			tmp+=(${tunnel})
+			tmp+=(${src_ssh}${src_path})
+			tmp+=(${tmp_dst_ssh}${dst_path})
+			local rsync_cmd=$(echo "${tmp[*]}")
+
+			# Old way
+			#local rsync_cmd="rsync ${config[${dst}/${config_key}/_flags]} ${config[${dst}/${config_key}/_flags+]} ${tunnel} ${src_ssh}${src_path} ${tmp_dst_ssh}${dst_path}"
 
 			# Should src be over SSH?
-			if [[ "${config[${src}/${config_key}/_ssh]}" && "${config[${dst}/${config_key}/_ssh]}" ]]; then
-				rsync_cmd=$(syn_ssh_wrap "${config[${src}/${config_key}/_ssh]}" "${rsync_cmd}")
+			if [[ "${src_ssh}" && "${dst_ssh}" ]]; then
+				rsync_cmd=$(syn_ssh_wrap "${config[${dst}/${config_key}/_ssh]}" "${rsync_cmd}")
 			fi
 			if ${flags[dryrun]}; then
 				# sed 's/[\t ]\+/ /g' # even cleaner but will break if paths have double spaces
