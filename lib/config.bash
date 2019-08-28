@@ -95,7 +95,9 @@ function syn_load_config_specific() {
 		elif [[ ! -d "${SYN_DEFAULT_PATH}" ]]; then
 			err=". Also, SYN_DEFAULT_PATH (${SYN_DEFAULT_PATH}) is not valid."
 		fi
-		syn_error "Could not find specific config file (${var_config})${err}"
+		if [[ ! $autocomplete ]]; then
+			syn_error "Could not find specific config file (${var_config})${err}"
+		fi
 	fi
 }
 
