@@ -89,14 +89,14 @@ declare -A flags_help=(
 
 # Vars
 declare -A vars=(
-	[file]=""
+	[config]=""
 	[only]=""
 	[plus]=""
 	[autocomplete-current]=""
 	[autocomplete-previous]=""
 )
 declare -A vars_help=(
-	[file]="Specify a config file to load (after other attempts)"
+	[config]="Specify a config file to load (after other attempts)"
 	[only]="Select only the actions you want to take (comma separated)"
 	[plus]="Select actions to take in addition to defaults (comma separated)"
 )

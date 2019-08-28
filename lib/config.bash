@@ -1,6 +1,14 @@
 # Library file for Syn
 
 
+# Config file autocomplete
+function syn_var_config_autocomplete() {
+	if [[ "${SYN_DEFAULT_PATH}" ]]; then
+		ls ${SYN_DEFAULT_PATH}/*.syn | sed -e 's/.*\///' | sed -e 's/\..*$//'
+	fi
+}
+
+
 # Config file loading
 function syn_load_configs() {
 	config_cnt=0
@@ -38,15 +46,17 @@ function syn_load_configs() {
 }
 
 
-# Load specific file (from --file parameter)
+# Load specific config file (from --config parameter)
 function syn_load_config_specific() {
+	local var_config="${vars[config]}"
 	local old_count=$config_cnt
-	if [[ -d "${default_config_dir}" && "${vars[file]}" == "." ]]; then
+	if [[ -d "${default_config_dir}" && "${var_config}" == "." ]]; then
 		# If there is a default location and "." was set as file
 		# then we'll use the current directory name as the filename
 		# and only check the default location for the config file.
-		vars[file]="${default_config_dir}/$(pwd | sed -e 's/.*\///g')"
-		for f in "${vars[file]}" "${vars[file]}.syn"; do
+		vars[config]="${default_config_dir}/$(pwd | sed -e 's/.*\///g')"
+		var_config="${vars[config]}"
+		for f in "${var_config}.syn.global" "${var_config}" "${var_config}.syn" "${var_config}.syn.local"; do
 			if [[ -f "$f" ]]; then
 				config_files="${config_files}\n${f}"
 				if ${flags[debug]}; then
@@ -56,8 +66,8 @@ function syn_load_config_specific() {
 				(( config_cnt++ ))
 			fi
 		done
-	elif [[ "${vars[file]}" ]]; then
-		for f in "${vars[file]}" "${vars[file]}.syn"; do
+	elif [[ "${var_config}" ]]; then
+		for f in "${var_config}.syn.global" "${var_config}" "${var_config}.syn" "${var_config}.syn.local"; do
 			if [[ -f "$f" ]]; then
 				# Otherwise we'll check the current dir for the named file
 				config_files="${config_files}\n${f}"
@@ -78,14 +88,14 @@ function syn_load_config_specific() {
 		done
 	fi
 
-	if [[ "${vars[file]}" ]] && (( "$old_count" == "$config_cnt" )); then
+	if [[ "${var_config}" ]] && (( "$old_count" == "$config_cnt" )); then
 		local err=""
 		if [[ -z "${SYN_DEFAULT_PATH}" ]]; then
 			err=". Also, SYN_DEFAULT_PATH is not set."
 		elif [[ ! -d "${SYN_DEFAULT_PATH}" ]]; then
 			err=". Also, SYN_DEFAULT_PATH (${SYN_DEFAULT_PATH}) is not valid."
 		fi
-		syn_error "Could not find specific config file (${vars[file]})${err}"
+		syn_error "Could not find specific config file (${var_config})${err}"
 	fi
 }
 

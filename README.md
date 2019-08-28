@@ -132,8 +132,8 @@ _Push to live/prod/"warn" without confirmation prompt (if applicable)_
 
 ### Vars
 
-#### `--file`
-_Specify an additional config file to load (after other attempts). Can be full or relative path, or the name of a file in your SYN_DEFAULT_PATH (see below). This is useful if you aren't storing the syn configuration files in the project folder. You can also use `--file .` to use the current directory name as the filename for a config file in your SYN_DEFAULT_PATH dir_
+#### `--config`
+_Specify an additional config file to load (after other attempts). Can be full or relative path, or the name of a file in your SYN_DEFAULT_PATH (see below). This is useful if you aren't storing the syn configuration files in the project folder. You can also use `--config .` to use the current directory name as the filename for a config file in your SYN_DEFAULT_PATH dir_
 
 #### `--only`
 _Select only the actions you want to take, comma separated_
@@ -264,7 +264,7 @@ Syn will automatically warn you before trying to synchronise TO any environment 
 ----
 ## Default Path
 
-You can specify a default path which Syn will look in (as well as the current directory) when using the `--file` parameter. For example, add this to your `.bashrc` file:
+You can specify a default path which Syn will look in (as well as the current directory) when using the `--config` parameter. For example, add this to your `.bashrc` file:
 
     export SYN_DEFAULT_PATH=~/MySynConfigs  # if you use '~' then DO NOT use quotes!
 

@@ -5,9 +5,15 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ## UPCOMING
 
+### BREAKING CHANGES
+
+- [core] Changed `--file` var to `--config`
+- [rsync] Note: incoming breaking change coming soon -- Will hopefully be protected against mishaps via a prompt
+
 ### Added
 
 - [core] Add `⚠` icon to error message
+- [core] Add autocompletion for `--config` (formerly `--file`)
 
 ### Fixed
 

@@ -74,7 +74,7 @@ function syn_cmd_help_help() {
 
 # Do we need to show the help?
 function syn_check_help_request() {
-	if [[ "$#" == 0 || "$cmd" == "help" || ( "$#" == 2 && "${vars[file]}" ) ]]; then
+	if [[ "$#" == 0 || "$cmd" == "help" || ( "$#" == 2 && "${vars[config]}" ) ]]; then
 		syn_cmd_help $src || $dst
 		exit
 	fi
