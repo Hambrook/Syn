@@ -14,6 +14,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 - [core] Add `⚠` icon to error message
 - [core] Add autocompletion for `--config` (formerly `--file`)
+- [core] Add `syn_copy_config()` function. Available for use in `.syn` files and useful for inheriting configs between entries
 
 ### Fixed
 
@@ -35,7 +36,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 ### Changed
 
 - [core] Restructure how actions are stored
-- [core] Impreove actions parsing
+- [core] Improve actions parsing
 - [core] Consolidated a lot of KV filtering logic
 - [core] Any `syn_cmd_` prefixed command can be run but only commands with help text will show in the commands list
 - [core] Added more colours to help screen and command/flag/var lists

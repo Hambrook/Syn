@@ -99,3 +99,15 @@ function syn_load_config_specific() {
 	fi
 }
 
+# Copy config from one env to another (useful for inheriting settings)
+function syn_copy_config() {
+	local from="$1"
+	local to="$2"
+	local pattern="^${from}/(.+)"
+
+	for e in "${!config[@]}"; do
+		if [[ $e =~ $pattern ]]; then
+			config[${to}/${BASH_REMATCH[1]}]=${config[${BASH_REMATCH[0]}]}
+		fi
+	done
+}
