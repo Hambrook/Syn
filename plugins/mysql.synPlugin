@@ -52,16 +52,16 @@ config[live/mysql/stru]=\"
 
 
 # mysql plugin defaults
-config[_mysql_path]="mysql"
-config[_mysql_dump]="mysqldump"
-config[_mysql_host]="127.0.0.1"
-config[_mysql_user]="root"
-config[_mysql_pass]=""
-config[_mysql_port]=3306
-config[_mysql_skip]=""
-config[_mysql_flags]="--add-drop-database --compress --hex-blob --opt --quote-names -v"
-config[_mysql_docker]=""
-config[_mysql_ssh]=""
+: ${config[_mysql_path]:="mysql"}
+: ${config[_mysql_dump]:="mysqldump"}
+: ${config[_mysql_host]:="127.0.0.1"}
+: ${config[_mysql_user]:="root"}
+: ${config[_mysql_pass]:=""}
+: ${config[_mysql_port]:=3306}
+: ${config[_mysql_skip]:=""}
+: ${config[_mysql_flags]:="--add-drop-database --compress --hex-blob --opt --quote-names -v"}
+: ${config[_mysql_docker]:=""}
+: ${config[_mysql_ssh]:=""}
 
 
 # Plugin: MySQL
