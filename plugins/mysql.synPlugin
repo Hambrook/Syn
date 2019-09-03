@@ -27,6 +27,7 @@ name:          The database name
 [skip]:        [SRC] Tables to skip (new-line string)
 [stru]:        [SRC] Tables to copy the structure of, not data (new-line string)
 [flags]:       [SRC] Optional mysql flags to use when dumping
+[flags+]:      [SRC] Additional mysql flags to use when dumping
 [_ssh]:        SSH connection string
 [_docker]:     Docker container name
 
@@ -60,6 +61,7 @@ config[live/mysql/stru]=\"
 : ${config[_mysql_port]:=3306}
 : ${config[_mysql_skip]:=""}
 : ${config[_mysql_flags]:="--add-drop-database --compress --hex-blob --opt --quote-names -v"}
+: ${config[_mysql_flags+]:=""}
 : ${config[_mysql_docker]:=""}
 : ${config[_mysql_ssh]:=""}
 
@@ -85,6 +87,7 @@ function syn_plugin_mysql() {
 	: ${config[$src/${config_key}/skip]:=${config[_mysql_skip]}}
 	: ${config[$src/${config_key}/stru]:=${config[_mysql_stru]}}
 	: ${config[$src/${config_key}/flags]:=${config[_mysql_flags]}}
+	: ${config[$src/${config_key}/flags+]:=${config[_mysql_flags+]}}
 
 	: ${config[$dst/${config_key}/path]:=${config[_mysql_path]}}
 	: ${config[$dst/${config_key}/host]:=${config[_mysql_host]}}
@@ -119,20 +122,23 @@ function syn_plugin_mysql() {
 		fi
 
 		# Build the src command
-		local cmdSrc="${config[${src}/${config_key}/dump]} \
-			${config[${src}/${config_key}/name]} \
-			${config[${src}/${config_key}/flags]} \
-			${skip} \
-			${tables} \
-			-h${config[${src}/${config_key}/host]} \
-			-u${config[${src}/${config_key}/user]} \
-			-P${config[${src}/${config_key}/port]} \
-		"
+		local tmp=("${config[${src}/${config_key}/dump]}")
+		tmp+=(${config[${src}/${config_key}/name]})
+		tmp+=(${skip})
+		tmp+=(${tables})
+		tmp+=(-h${config[${src}/${config_key}/host]})
+		tmp+=(-u${config[${src}/${config_key}/user]})
+		tmp+=(-P${config[${src}/${config_key}/port]})
 
 		# Is there a password set?
 		if [[ "${config[${src}/${config_key}/pass]}" ]]; then
-			cmdSrc="${cmdSrc} -p${config[${src}/${config_key}/pass]} "
+			tmp+=(-p${config[${src}/${config_key}/pass]})
 		fi
+
+		tmp+=(${config[${src}/${config_key}/flags]})
+		tmp+=(${config[${src}/${config_key}/flags+]})
+
+		local cmdSrc=$(echo "${tmp[*]}")
 
 		# Should src be sent to a docker container?
 		if [[ "${config[${src}/${config_key}/_docker]}" ]]; then
@@ -144,18 +150,20 @@ function syn_plugin_mysql() {
 			cmdSrc=$(syn_ssh_wrap "${config[${src}/${config_key}/_ssh]}" "$cmdSrc")
 		fi
 
+
 		# Build the dst command
-		local cmdDst="${config[${dst}/${config_key}/path]} \
-			-D${config[${dst}/${config_key}/name]} \
-			-h${config[${dst}/${config_key}/host]} \
-			-u${config[${dst}/${config_key}/user]} \
-			-P${config[${dst}/${config_key}/port]} \
-		"
+		local tmp=(${config[${dst}/${config_key}/path]})
+		tmp+=(-D${config[${dst}/${config_key}/name]})
+		tmp+=(-h${config[${dst}/${config_key}/host]})
+		tmp+=(-u${config[${dst}/${config_key}/user]})
+		tmp+=(-P${config[${dst}/${config_key}/port]})
 
 		# Is there a password set?
 		if [[ "${config[${dst}/${config_key}/pass]}" ]]; then
-			cmdDst="${cmdDst} -p${config[${dst}/${config_key}/pass]} "
+			tmp+=(-p${config[${dst}/${config_key}/pass]})
 		fi
+
+		local cmdDst=$(echo "${tmp[*]}")
 
 		# Should dst be sent to a docker container?
 		if [[ "${config[${dst}/${config_key}/_docker]}" ]]; then
