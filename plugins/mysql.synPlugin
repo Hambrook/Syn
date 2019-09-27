@@ -175,6 +175,11 @@ function syn_plugin_mysql() {
 			cmdDst=$(syn_ssh_wrap "${config[${dst}/${config_key}/_ssh]}" "$cmdDst")
 		fi
 
+
+		# Test dst connection before connecting to src
+		cmdSrc="${cmdDst} -e '\\\\q' && ${cmdSrc}"
+
+
 		# Finish up
 		if ${flags[dryrun]}; then
 			printf "[PREVIEW] MySQL...\n"

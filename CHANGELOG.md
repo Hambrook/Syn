@@ -18,6 +18,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 - [mysql] Add `flags+` option and move flags to end of the command (for _very_ crude use of `sed` etc)
 - [mysql] Add ability to override default values
 - [rsync] Add ability to override default flags
+- [mysql] Add connectivity check to DST before connecting to SRC
 
 ### Changed
 
