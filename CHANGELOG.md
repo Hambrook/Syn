@@ -3,7 +3,12 @@
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
 
-## UPCOMING
+## [1.0.1] 2019-11-19
+
+### Fixed
+
+- [core] Fix notifications not working via BurntToast (artifact of debugging)
+
 
 ## [1.0.0] 2019-11-19
 

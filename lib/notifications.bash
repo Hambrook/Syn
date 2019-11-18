@@ -66,7 +66,7 @@ function syn_notifications_has_powershell() {
 # Test if the user has already installed BurntToast (via PowerShell on Win10)
 function syn_notifications_has_burnttoast() {
 	if syn_notifications_has_powershell; then
-		local tmp=$(powershell.exe -command Get-Module -ListAvailable -Name BurntToast2)
+		local tmp=$(powershell.exe -command Get-Module -ListAvailable -Name BurntToast)
 		if [ ! -z "${tmp}" ]; then
 			return 0
 		fi
