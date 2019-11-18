@@ -15,6 +15,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 - [core] Add autocompletion for `--config` (formerly `--file`)
 - [core] Add `syn_copy_config()` function. Available for use in `.syn` files and useful for inheriting configs between entries
 - [core] Add notification support for WSL on Windows 10 (via BurntToast). See `syn --notifications` or ReadMe for more info
+- [core] Add `syn_cli_info()` function for displaying a yellow info box
 - [mysql] Add `flags+` option and move flags to end of the command (for _very_ crude use of `sed` etc)
 - [mysql] Add ability to override default values
 - [rsync] Add ability to override default flags

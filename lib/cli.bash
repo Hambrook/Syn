@@ -25,6 +25,12 @@ function syn_cli_confirm() {
 }
 
 
+# Show an info box
+function syn_cli_info() {
+	printf "$(_ bg_yellow)\n\t${1//\\n/\\n\\t}\n$(_ reset)\n\n"
+}
+
+
 function syn_cli_render_title() {
 	if [ "$1" ]; then
 		printf "$(_ bold blue)$1$(_ reset default)\n"

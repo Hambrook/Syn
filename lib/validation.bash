@@ -14,7 +14,8 @@ function syn_validate_allow() {
 
 	if [[ $to =~ (live|prod) || "${config[${to}/_allow]}" == "warn" ]]; then
 		if ${flags[force]}; then
-			printf "$(_ bg_yellow)\n\tWARNING: Forcing override of dangerous deployment warning\n$(_ reset)\n"
+			syn_cli_info "WARNING: Forcing override of dangerous deployment warning"
+			#printf "$(_ bg_yellow)\n\tWARNING: Forcing override of dangerous deployment warning\n$(_ reset)\n"
 			#printf "$(_ yellow bold)WARNING: Forcing override of dangerous deployment warning$(_ reset)\n"
 		elif ! syn_cli_confirm "Pushing to this environment could be dangerous, are you sure?" false; then
 			printf "Aborting\n"
