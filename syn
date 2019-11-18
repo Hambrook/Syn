@@ -71,6 +71,7 @@ declare default_config_dir
 declare colour_enabled=true
 declare time_start=`date +"%s"`
 declare -A formatting   # must be declared here, not in lib file
+#declare -A api_versions
 
 # Default settings for plugins to extend
 declare -A config
@@ -136,6 +137,7 @@ function syn_cmd_sync() {
 		if [[ ! $(syn_validate_plugin "$p") ]]; then
 			syn_error "Plugin '$p' not found"
 		fi
+		#syn_api_version_check $p
 	done
 
 	# Run all the actions exist
@@ -260,7 +262,7 @@ function syn_cmd_configs() {
 
 	local configs=""
 	for v in ${config_files[*]}; do
-		configs+="  ${e}"
+		configs+="  ${v}"
 		configs+="\n"
 	done
 	if [[ ! "${envs}" ]]; then
@@ -276,16 +278,13 @@ function syn_cmd_install() {
 	if [[ ! -L "/etc/bash_completion.d/syn" ]]; then
 		sudo ln -s "${app_dir}/other/syncomplete.bash" "/etc/bash_completion.d/syn"
 		if [[ -L "${BASH_SOURCE[0]}" ]]; then
-			printf "Bash completion file added. Try it out!\n"
+			printf "Bash completion file added. Try it out!\n\n"
 		fi
 	fi
-	if [[ -L "${BASH_SOURCE[0]}" ]]; then
-		syn_error "Syn is already installed as a SymLink."
+	if syn_notifications_has_powershell && ! syn_notifications_has_burnttoast; then
+		syn_notifications_burnttoast_install_help
 	fi
-	if [[ -e "/usr/local/bin/syn" ]]; then
-		syn_error "Syn is already installed to your path."
-	fi
-	sudo ln -s "$(readlink -f "$0")" "/usr/local/bin/syn"
+
 	printf "You can now run this script simply by typing 'syn'\n"
 }
 function syn_cmd_install_help() {
@@ -340,7 +339,7 @@ function syn_banner() {
     _____
    / ____|
   | (___  _   _ _ __     $(_ r_bold)Version: v%s$(_ bold)
-   \___ \| | | | '_ \ 
+   \___ \| | | | '_ \\
    ____) | |_| | | | |   $(_ r_bold)Author:  %s$(_ bold)
   |_____/ \__, |_| |_|
            __/ |         $(_ r_bold)Website: %s$(_ bold)
@@ -438,14 +437,7 @@ function syn_post_summary() {
 $(_ bg_default)
 " "${src}" "${dst}" "${plugins_str}" "${time_diff_str}"
 
-	# Popup notification
-	if which notify-send >/dev/null; then
-		notify-send \
-			--category=transfer.complete \
-			--icon="${app_dir}/assets/icon.png" \
-			"Syn Complete (${time_diff_str})" \
-			"${summary_text}"
-	fi
+	syn_notifications_show "Syn Complete (${time_diff_str})" "${summary_text}" "${app_dir}/assets/icon.png" "transfer.complete"
 }
 
 

@@ -63,6 +63,8 @@ $(syn_cmd_paths)
 
 $(syn_cmd_configs)
 
+$(syn_cmd_notifications)
+
 "
 # | less
 	exit
