@@ -27,10 +27,11 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ### Fixed
 
-- [mysql] Fix default config not applying to aliased keys
-- [rsync] Fix remote to remote transfers
+- [core] Fix error display not parsing new lines
 - [core] Fix config hierarchy not working as expected
 - [core] Fix colour output (and r_bold) for help and info
+- [mysql] Fix default config not applying to aliased keys
+- [rsync] Fix remote to remote transfers
 
 
 ## [0.6.2] 2018-12-06

@@ -4,7 +4,7 @@
 # Exit with an error and a non-successful exit code
 function syn_error() {
 	local error="${1:-"An unknown error has occured"}"
-	printf "$(_ bold red)⚠$(_ r_dim) Error: %s\n" "${error}$(_ reset)" 1>&2
+	printf "$(_ bold red)\n⚠$(_ r_dim) Error: ${error}\n\n$(_ reset)" 1>&2
 	exit 1
 }
 
