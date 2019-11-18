@@ -5,9 +5,13 @@ Notable changes to this project will be documented here. Or see the [full commit
 
 ## UPCOMING
 
+## [1.0.0] 2019-11-19
+
 ### BREAKING CHANGES
 
 - [core] Changed `--file` var to `--config`
+- [rsync] `dirs` config has been renamed to `paths` and a deprecation notice has been added
+- [rsync] Folder paths should now **end with a trailing slash** so paths without trailing slashes are presumed to be files
 
 ### Added
 

@@ -13,7 +13,23 @@ By Rick Hambrook (rick@rickhambrook.com)
 ----
 ## Platforms
 
-Syn was built for Bash on Linux. It should also work in Bash on Mac and Windows 10 with Windows Subsystem for Linux (though this has not been tested). 
+Syn was built for Bash on Linux. It should also work in Bash on Mac but is untested.
+
+#### Windows 10 (via Windows Subsystem for Linux)
+
+Syn works fine using Bash in WSL however be mindful of your line endings in your Syn config files.
+
+Note: the background colours are misbehaving a little.
+
+Toast Notifications: Syn can push toast notifications to Windows automatically if you install BurntToast in PowerShell.
+
+    PS C:\> Install-Module -Name BurntToast
+
+Known issue: If your terminal changes font after showing the toast notification then try changing the terminal font to Lucida Console or your other favourite mono font instead of Consolas. A known issue with PowerShell causes the WSL terminal to change to raster fonts if you're using the Consolas font.
+
+Use the below command to test notifications:
+
+    syn --notifications test
 
 ----
 ## Installation
@@ -33,9 +49,10 @@ Put Syn in a tools folder somewhere outside of your regular projects.
     config[live/mysql/name]=LIVENAME
     config[live/mysql/user]=LIVEUSER
     config[live/mysql/pass]=LIVEPASS
-    config[live/rsync/dirs]="
-        uploads=/absolute/path-to/uploads
-        config=relative/path-to/config
+    config[live/rsync/paths]="
+        app=/absolute/path-to/app/
+        !uploadsdir=relative/path-to/uploads/
+        !envfile=relative/path-to/.env
     "
     config[live/mysql/skip]="
         oldtable
@@ -49,9 +66,10 @@ Put Syn in a tools folder somewhere outside of your regular projects.
     config[local/mysql/name]=mydb
     #default user/pass of root/none will be used for db if not specified
     config[local/rsync/_docker]=my_container_name
-    config[local/rsync/dirs]="
-        uploads=relative/path-to/uploads
-        config=/absolute/path-to/config
+    config[local/rsync/paths]="
+        app=local/path-to/app/
+        !uploadsdir=local/path-to/uploads/
+        !envfile=local/path-to/.env
     "
 
 ### Usage
@@ -182,12 +200,12 @@ For reference, see the included plugins in the `plugins/` directory.
 ----
 ## `!` Prefix and List Values
 
-Some plugins that list named items (such as `rsync` dirs or `before`/`after` commands) support the `!` prefix on the item name.
+Some plugins that list named items (such as `rsync` paths or `before`/`after` commands) support the `!` prefix on the item name.
 
-    config[live/rsync/dirs]="
-        uploads=path/to/dir
-        !configs=/root/based/path
-        !app=/app
+    config[live/rsync/paths]="
+        app=/absolute/path-to/app/
+        !uploadsdir=relative/path-to/uploads/
+        !envfile=relative/path-to/.env
     "
 
 The `!` means that this dir will not be processed unless you explicitly tell it to. So if you simply run `syn local staging` then the `rsync` plugin will only process the `uploads` dir by default. If you want the `app` dir too then you can do so by using `--rsync-only` or `--rsync-plus` as below.
@@ -199,7 +217,7 @@ Will process **only** the items you specify, all others are ignored. So only `co
 Will process the default items **plus** any you specify. So `uploads` and `app`. Note that autocomplete won't suggest the default directories items they're already included.
 
 #### `--<plugin>-list` (eg `--rsync-list`)
-Will list the available values (dirs for `rsync`, commands for `before` and `after`) so you don't have to open up your config files to review them.
+Will list the available values (paths for `rsync`, commands for `before` and `after`) so you don't have to open up your config files to review them.
 
 ### Autocomplete
 

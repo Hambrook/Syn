@@ -17,15 +17,15 @@ Uses a new-line separated list, with key/values separated by '='. Note no traili
 Relative paths will be prepended by the local root from either \$config[env/rsync/root]
 or the deepest location of a .syn from the current directory up to the root.
 
-Only named dirs that exist in both SRC and DST will be processed.
+Only named paths that exist in both SRC and DST will be processed.
 
 --------------------------------------------------------------------------------
 
 CONFIG
 
 [root]:        Path to project root (optional base for relative paths)
-dirs:          Directories to sync (new-line string)
-[_ssh]:        SSH string for the server where the dirs are located
+paths:         Directories to sync (new-line string)
+[_ssh]:        SSH string for the server where the paths are located
 [_flags]:      [DST] Replace the default rsync flags with your own
 [_flags+]:     [DST] Append your own flags to the default
 [_tunnel]:     SSH string for a separate server to tunnel through
@@ -34,14 +34,22 @@ dirs:          Directories to sync (new-line string)
 
 CONFIG EXAMPLE
 
+# Live
 config[live/rsync/root]=/path/to/project/root
 config[live/rsync/_ssh]=deploy@livehost
 config[live/rsync/_flags]=-aclru --progress
 config[live/rsync/_flags+]=\"--chown=www-data:www-data --rsync-path=\\\\\"sudo rsync\\\\\"\"
 config[live/rsync/_tunnel]=user@host.with.access.to.live
-config[live/rsync/dirs]=\"
-    uploads=path/to/dir
-    configs=/root/based/path
+config[live/rsync/paths]=\"
+    app=/absolute/path-to/app/
+    !uploadsdir=relative/path-to/uploads/
+    !envfile=relative/path-to/.env
+\"
+# Local
+config[local/rsync/paths]=\"
+    app=local/path-to/app/
+    !uploadsdir=local/path-to/uploads/
+    !envfile=local/path-to/.env
 \"
 "
 }
@@ -60,7 +68,6 @@ config[live/rsync/dirs]=\"
 # p = preserve permissions
 # v = verbose
 
-
 # Flags
 flags[rsync-dryrun]=false
 flags_help[rsync-dryrun]="RSYNC: Show anticipated changed without actually doing them"
@@ -68,36 +75,46 @@ flags_help[rsync-dryrun]="RSYNC: Show anticipated changed without actually doing
 
 # Vars
 vars[rsync-only]=""
-vars_help[rsync-only]="RSYNC: Specify dirs to process and ignore others (comma separated)"
+vars_help[rsync-only]="RSYNC: Specify paths to process and ignore others (comma separated)"
 # Autocomplete
 function syn_var_rsync-only_autocomplete() {
 	local config_key="rsync"
-	syn_autocomplete_kv_field "${src}/${config_key}/dirs" "${1}"
+	syn_autocomplete_kv_field "${src}/${config_key}/paths" "${1}"
 }
 
 vars[rsync-plus]=""
-vars_help[rsync-plus]="RSYNC: Specify dirs to process in addition to the defaults (comma separated)"
+vars_help[rsync-plus]="RSYNC: Specify paths to process in addition to the defaults (comma separated)"
 # Autocomplete
 function syn_var_rsync-plus_autocomplete() {
 	local config_key="rsync"
-	syn_autocomplete_kv_field "${src}/${config_key}/dirs" "${1}" "!"
+	syn_autocomplete_kv_field "${src}/${config_key}/paths" "${1}" "!"
 }
 
 
-# Show dirs
+# Show paths
 function syn_cmd_rsync-list() {
-	printf "RSYNC dirs\n"
+	printf "RSYNC paths\n"
 
 	local envs=${environments[*]}
 	if [[ "$src" || "$dst" ]]; then
 		envs=("$src" "$dst")
 	fi
 	for e in ${envs[*]}; do
-		syn_list_kv_field "${e}" "$e/rsync/dirs"
+		syn_list_kv_field "${e}" "$e/rsync/paths"
 	done
 }
 function syn_cmd_rsync-list_help() {
-	printf "Show available dirs for src, dst, or all environments"
+	printf "Show available paths for src, dst, or all environments"
+}
+
+function syn_api_rsync() {
+	# Todo: find a better way to format this
+	syn_cli_render_title "RSYNC: Changes API v1 -> v2"
+	printf "Directory paths now have a trailing slash, files do not, eg.\n\n"
+	printf "  config[local/rsync/paths]=\"
+    uploadsdir=path-to/uploads/
+    configfile=path-to/config.php
+  \"\n"
 }
 
 
@@ -106,6 +123,11 @@ function syn_plugin_rsync() {
 	local config_key=$1
 	local -A src_paths
 	local -A dst_paths
+
+	# Catch old configs that use "dirs" instead of "paths"
+	if [[ "${#config[$dst/$config_key/dirs]}" -gt 0 ]]; then
+		syn_error "RSYNC: 'dirs' config is deprecated. Please rename to 'paths' and add trailing slashes to each line that defines a directory."
+	fi
 
 	# Defaults
 	: ${config[$dst/$config_key/_flags]:=${config[_rsync_flags]}}
@@ -124,22 +146,24 @@ function syn_plugin_rsync() {
 		dryrun_triggered_by="\"--dry-run\" in \$config[$dst/$config_key/_flags]"
 	fi
 	if [[ "$dryrun_triggered_by" ]]; then
-		printf "$(_ bg_yellow)\n\tRSYNC DRY RUN: Actions will be simulated but not executed\n\tTriggered by ${dryrun_triggered_by}\n$(_ reset)\n\n"
+		syn_cli_info "RSYNC DRY RUN: Actions will be simulated but not executed\n\tTriggered by ${dryrun_triggered_by}"
 	fi
 
 	# Source
-	syn_kv_field_to_filtered_kv_array src_paths "${src}/${config_key}/dirs" "${vars[rsync-only]}" "${vars[rsync-plus]}"
+	syn_kv_field_to_filtered_kv_array src_paths "${src}/${config_key}/paths" "${vars[rsync-only]}" "${vars[rsync-plus]}"
 	local src_ssh=""
 	if [[ "${config[${src}/${config_key}/_ssh]}" ]]; then
 		src_ssh="${config[${src}/${config_key}/_ssh]}:"
 	fi
+	local src_tunnel="${config[${src}/${config_key}/_tunnel]}"
 
 	# Destination
-	syn_kv_field_to_filtered_kv_array dst_paths "${dst}/${config_key}/dirs" "${vars[rsync-only]}" "${vars[rsync-plus]}"
+	syn_kv_field_to_filtered_kv_array dst_paths "${dst}/${config_key}/paths" "${vars[rsync-only]}" "${vars[rsync-plus]}"
 	local dst_ssh=""
 	if [[ "${config[${dst}/${config_key}/_ssh]}" ]]; then
 		dst_ssh="${config[${dst}/${config_key}/_ssh]}:"
 	fi
+	local dst_tunnel="${config[${dst}/${config_key}/_tunnel]}"
 
 	# Loop it and create the commands
 	for i in "${!src_paths[@]}"; do
@@ -147,35 +171,50 @@ function syn_plugin_rsync() {
 			# Update paths with roots if needed
 			local pattern="^(~|/|./|../)"
 			local src_path="$(printf "${src_paths[$i]}" | sed -e 's/\*$//')"
-			if [[ ( ( "${config[${src}/${config_key}/root]}" ) || ( $local_root && ! "${config[${src}/${config_key}/_ssh]}" ) ) && ! $src_path =~ $pattern ]]; then
-				if [[ "${config[${src}/${config_key}/root]}" ]]; then
-					src_path="${config[${src}/${config_key}/root]}/${src_path}"
+			local src_root="${config[${src}/${config_key}/root]}"
+			if [[ ( ( "${src_root}" ) || ( $local_root && ! "${src_ssh}" ) ) && ! $src_path =~ $pattern ]]; then
+				if [[ "${src_root}" ]]; then
+					src_path="${src_root}/${src_path}"
 				else
 					src_path="${local_root}/${src_path}"
 				fi
 			fi
 			local dst_path="$(printf "${dst_paths[$i]}" | sed -e 's/\*$//')"
-			if [[ ( ( "${config[${dst}/${config_key}/root]}" ) || ( $local_root && ! "${config[${dst}/${config_key}/_ssh]}" ) ) && ! $dst_path =~ $pattern ]]; then
-				if [[ "${config[${dst}/${config_key}/root]}" ]]; then
-					dst_path="${config[${dst}/${config_key}/root]}/${dst_path}"
+			local dst_root="${config[${dst}/${config_key}/root]}"
+			if [[ ( ( "${dst_root}" ) || ( $local_root && ! "${dst_ssh}" ) ) && ! $dst_path =~ $pattern ]]; then
+				if [[ "${dst_root}" ]]; then
+					dst_path="${dst_root}/${dst_path}"
 				else
 					dst_path="${local_root}/${dst_path}"
 				fi
 			fi
 
+			# Ensure directories have trailing slashes now.
+			# The old format used no trailing slash but now a trailing slash defines a folder to transfer
+			# and no trailing slash defines a file to transfer.
+			if [[ -z "${src_tunnel}" && -z "${src_ssh}" && "${src_path}" != */ && -d "${src_path}" ]]; then
+				syn_error "RSYNC: The rsync config format has changed. Please ensure your dir paths have a trailing slash. Please check the following config line:\n\n\t${i}=\"${src_paths[$i]}\""
+			fi
+			if [[ -z "${dst_tunnel}" && -z "${dst_ssh}" && "${dst_path}" == */ && -d "${dst_path}" ]]; then
+				syn_error "RSYNC: The rsync config format has changed. Please ensure your dir paths have a trailing slash. Please check the following config line:\n\n\t${i}=\"${src_paths[$i]}\""
+			fi
+			if [[ "${src_ssh}${src_tunnel}" && "${dst_ssh}${dst_tunnel}" ]]; then
+				syn_cli_info "RSYNC: The rsync config format has changed. Please ensure your dir paths have a trailing slash. We can't automatically check this for remote to remote connections."
+				syn_cli_confirm "Have you verified that all your dir paths have trailing slashes?" || printf "Aborting\n" && exit
+			fi
+
 			# Are we routing through an SSH tunnel?
 			local tunnel=""
-			if [[ "${config[${src}/${config_key}/_tunnel]}" && "${config[${dst}/${config_key}/_tunnel]}" ]]; then
+			if [[ "${src_tunnel}" && "${dst_tunnel}" ]]; then
 				syn_error "Sorry, you can't use _tunnel for both source and destination."
 			fi
-			if [[ "${config[${src}/${config_key}/_tunnel]}" ]]; then
-				tunnel="-e 'ssh -A ${config[${src}/${config_key}/_tunnel]} ssh'"
-			elif [[ "${config[${dst}/${config_key}/_tunnel]}" ]]; then
-				tunnel="-e 'ssh -A ${config[${dst}/${config_key}/_tunnel]} ssh'"
+			if [[ "${src_tunnel}" ]]; then
+				tunnel="-e 'ssh -A ${src_tunnel} ssh'"
+			elif [[ "${dst_tunnel}" ]]; then
+				tunnel="-e 'ssh -A ${dst_tunnel} ssh'"
 			fi
 
 			local tmp_dst_ssh=$dst_ssh
-
 			if [[ "${src_ssh}" && "${dst_ssh}" ]]; then
 				tmp_dst_ssh=""
 			fi
@@ -185,12 +224,9 @@ function syn_plugin_rsync() {
 			tmp+=(${config[${dst}/${config_key}/_flags]})
 			tmp+=(${config[${dst}/${config_key}/_flags+]})
 			tmp+=(${tunnel})
-			tmp+=(${src_ssh}${src_path}/)
+			tmp+=(${src_ssh}${src_path})
 			tmp+=(${tmp_dst_ssh}${dst_path})
 			local rsync_cmd=$(echo "${tmp[*]}")
-
-			# Old way
-			#local rsync_cmd="rsync ${config[${dst}/${config_key}/_flags]} ${config[${dst}/${config_key}/_flags+]} ${tunnel} ${src_ssh}${src_path} ${tmp_dst_ssh}${dst_path}"
 
 			# Should src be over SSH?
 			if [[ "${src_ssh}" && "${dst_ssh}" ]]; then
