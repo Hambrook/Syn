@@ -3,11 +3,12 @@
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
 
-## UPCOMING
+## [1.0.2] 2019-11-20
 
 ### Fixed
 
 - [core] Fix summary not showing all config files that were loaded
+- [rsync] Fix dir config error message showing when it shouldn't when dst was local
 
 
 ## [1.0.1] 2019-11-19

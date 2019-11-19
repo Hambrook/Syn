@@ -195,7 +195,7 @@ function syn_plugin_rsync() {
 			if [[ -z "${src_tunnel}" && -z "${src_ssh}" && "${src_path}" != */ && -d "${src_path}" ]]; then
 				syn_error "RSYNC: The rsync config format has changed. Please ensure your dir paths have a trailing slash. Please check the following config line:\n\n\t${i}=\"${src_paths[$i]}\""
 			fi
-			if [[ -z "${dst_tunnel}" && -z "${dst_ssh}" && "${dst_path}" == */ && -d "${dst_path}" ]]; then
+			if [[ -z "${dst_tunnel}" && -z "${dst_ssh}" && "${dst_path}" != */ && -d "${dst_path}" ]]; then
 				syn_error "RSYNC: The rsync config format has changed. Please ensure your dir paths have a trailing slash. Please check the following config line:\n\n\t${i}=\"${src_paths[$i]}\""
 			fi
 			if [[ "${src_ssh}${src_tunnel}" && "${dst_ssh}${dst_tunnel}" ]]; then
