@@ -3,6 +3,13 @@
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
 
+## UPCOMING
+
+### Fixed
+
+- [core] Fix summary not showing all config files that were loaded
+
+
 ## [1.0.1] 2019-11-19
 
 ### Fixed

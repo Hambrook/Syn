@@ -17,7 +17,7 @@ function syn_load_configs() {
 	local paths=()
 	# Default
 	if [[ "${SYN_DEFAULT_PATH}" ]]; then
-		paths[${#paths[@]}]="${SYN_DEFAULT_PATH}"
+		paths+=("${SYN_DEFAULT_PATH}")
 	fi
 	# Hierarchy
 	local currpath="${PWD}"
@@ -34,6 +34,7 @@ function syn_load_configs() {
 					local_root="${pathname}"
 				fi
 
+				pathname="${pathname//"\n"/""}"
 				config_files+=("${pathname}/${filename}")
 				if ${flags[debug]}; then
 					printf "Loading config file: %s\n" "${pathname}/${filename}"

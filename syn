@@ -253,20 +253,9 @@ function syn_cmd_plugins_help() {
 function syn_cmd_configs() {
 	#todo: migrate to use syn_cli_render_title
 	syn_cli_render_title "Loaded Configs:"
-	for k in ${config_files[@]}; do
-		printf "  %s\n" "${k//"\n"/""}"
-	done
+	printf "  %s\n" "${config_files[@]//"\n"/""}"
 	if [[ "${config_files[@]}" = "" ]]; then
 		printf "  <none>\n"
-	fi
-
-	local configs=""
-	for v in ${config_files[*]}; do
-		configs+="  ${v}"
-		configs+="\n"
-	done
-	if [[ ! "${envs}" ]]; then
-		envs="  <none>\n"
 	fi
 }
 function syn_cmd_configs_help() {
@@ -423,7 +412,7 @@ function syn_post_summary() {
 		plugins_str=${plugins_str//"!"/""};
 	fi
 
-	local tmp_configs=${config_files//"\n"/"\n\t\t"}
+	local tmp_configs=$(printf "\n\t\t%s" "${config_files[@]//"\n"/""}")
 
 	# Inline summary
 	printf "$(_ bg_green)

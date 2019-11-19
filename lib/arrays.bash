@@ -1,7 +1,7 @@
 # Library file for Syn
 
 
-# In Array
+# In Array (key exists?)
 function in_array() {
 	local haystack=${2}[@]
 	local needle=${1}
