@@ -3,6 +3,13 @@
 Notable changes to this project will be documented here. Or see the [full commit history](https://github.com/Hambrook/Syn/commits/master).
 
 
+## UPCOMING
+
+### Fixed
+
+- [core] Fix installer not actually installing
+
+
 ## [1.0.2] 2019-11-20
 
 ### Fixed

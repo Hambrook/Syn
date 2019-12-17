@@ -270,6 +270,15 @@ function syn_cmd_install() {
 			printf "Bash completion file added. Try it out!\n\n"
 		fi
 	fi
+
+	if [[ -L "${BASH_SOURCE[0]}" ]]; then
+		syn_error "Syn is already installed as a SymLink."
+	fi
+	if [[ -e "/usr/local/bin/syn" ]]; then
+		syn_error "Syn is already installed to your path."
+	fi
+	sudo ln -s "$(readlink -f "$0")" "/usr/local/bin/syn"
+
 	if syn_notifications_has_powershell && ! syn_notifications_has_burnttoast; then
 		syn_notifications_burnttoast_install_help
 	fi
