@@ -120,7 +120,7 @@ function syn_api_rsync() {
 
 # Plugin: RSYNC
 function syn_plugin_rsync() {
-	local config_key=$1
+	local config_key=${1:="rsync"}
 	local -A src_paths
 	local -A dst_paths
 
