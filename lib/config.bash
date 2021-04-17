@@ -4,7 +4,7 @@
 # Config file autocomplete
 function syn_var_config_autocomplete() {
 	if [[ "${SYN_DEFAULT_PATH}" ]]; then
-		ls ${SYN_DEFAULT_PATH}/*.syn | sed -e 's/.*\///' | sed -e 's/\..*$//'
+		ls ${SYN_DEFAULT_PATH}/*.syn | sed -e 's/.*\///' | sed -e 's/\.syn*$//'
 	fi
 }
 
