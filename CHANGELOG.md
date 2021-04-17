@@ -8,7 +8,7 @@ Notable changes to this project will be documented here. Or see the [full commit
 ### Fixed
 
 - [core] Fix installer not actually installing
-
+- [core] Fix `--config` autocomplete suggestions being stripped from their first period. eg "example.com.syn" would show up as "example"
 
 ## [1.0.2] 2019-11-20
 

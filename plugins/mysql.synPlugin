@@ -177,7 +177,7 @@ function syn_plugin_mysql() {
 
 
 		# Test dst connection before connecting to src
-		cmdSrc="${cmdDst} -e '\\\\q' && ${cmdSrc}"
+		#cmdSrc="${cmdDst} -e '\\\\q' && ${cmdSrc}"
 
 
 		# Finish up
